@@ -1,8 +1,7 @@
-import { Button, Tooltip, Dropdown } from "@agentscope-ai/design";
+import { Button, Tooltip } from "@agentscope-ai/design";
 import type { ColumnsType } from "antd/es/table";
-import type { MenuProps } from "antd";
 import type { CronJobSpecOutput } from "../../../../api/types";
-import { CopyOutlined, MoreOutlined } from "@ant-design/icons";
+import { CopyOutlined } from "@ant-design/icons";
 import { useAppMessage } from "../../../../hooks/useAppMessage";
 import { TFunction } from "i18next";
 import { parseCron } from "./parseCron";
@@ -298,49 +297,57 @@ export const createColumns = (
     {
       title: handlers.t("cronJobs.action"),
       key: "action",
-      width: 240,
+      width: 220,
       fixed: "right",
-      render: (_: unknown, record: CronJob) => {
-        const menuItems: MenuProps["items"] = [
-          {
-            key: "edit",
-            label: handlers.t("cronJobs.edit"),
-            disabled: record.enabled,
-            onClick: () => handlers.onEdit(record),
-          },
-          {
-            key: "delete",
-            label: handlers.t("cronJobs.delete"),
-            disabled: record.enabled,
-            danger: true,
-            onClick: () => handlers.onDelete(record.id),
-          },
-        ];
-
-        return (
-          <div className={styles.actionColumn}>
+      render: (_: unknown, record: CronJob) => (
+        <div className={styles.actionColumn}>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => handlers.onToggleEnabled(record)}
+          >
+            {record.enabled
+              ? handlers.t("cronJobs.disable")
+              : handlers.t("common.enable")}
+          </Button>
+          <Tooltip
+            title={
+              record.enabled ? handlers.t("cronJobs.disableFirstEdit") : undefined
+            }
+          >
             <Button
               type="link"
               size="small"
-              onClick={() => handlers.onToggleEnabled(record)}
+              disabled={record.enabled}
+              onClick={() => handlers.onEdit(record)}
             >
-              {record.enabled
-                ? handlers.t("cronJobs.disable")
-                : handlers.t("common.enable")}
+              {handlers.t("cronJobs.edit")}
             </Button>
+          </Tooltip>
+          <Button
+            type="link"
+            size="small"
+            onClick={() => handlers.onExecuteNow(record)}
+          >
+            {handlers.t("cronJobs.executeNow")}
+          </Button>
+          <Tooltip
+            title={
+              record.enabled ? handlers.t("cronJobs.disableFirst") : undefined
+            }
+          >
             <Button
               type="link"
               size="small"
-              onClick={() => handlers.onExecuteNow(record)}
+              danger
+              disabled={record.enabled}
+              onClick={() => handlers.onDelete(record.id)}
             >
-              {handlers.t("cronJobs.executeNow")}
+              {handlers.t("cronJobs.delete")}
             </Button>
-            <Dropdown menu={{ items: menuItems }} placement="bottomRight">
-              <Button type="text" size="small" icon={<MoreOutlined />} />
-            </Dropdown>
-          </div>
-        );
-      },
+          </Tooltip>
+        </div>
+      ),
     },
   ];
 };

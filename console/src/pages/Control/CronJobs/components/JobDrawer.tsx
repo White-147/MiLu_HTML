@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from "react";
 import {
   Drawer,
   Form,
@@ -8,14 +9,195 @@ import {
   Button,
   Checkbox,
 } from "@agentscope-ai/design";
-import { TimePicker } from "antd";
+import { Modal, TimePicker, Tabs, Typography } from "antd";
+import {
+  QuestionCircleOutlined,
+  ScanOutlined,
+} from "@ant-design/icons";
 import { useTranslation } from "react-i18next";
 import type { FormInstance } from "antd";
-import type { CronJobSpecOutput } from "../../../../api/types";
+import type { CronJobSpecOutput, ChatSpec } from "../../../../api/types";
+import api from "../../../../api";
 import { TIMEZONE_OPTIONS, DEFAULT_FORM_VALUES } from "./constants";
 import styles from "../index.module.less";
 
 type CronJob = CronJobSpecOutput;
+
+const CONTENT_TYPE_EXAMPLES = {
+  text: {
+    label: "text",
+    desc: "普通对话 / 指令 / 提问 / 总结 / 写作",
+    json: JSON.stringify(
+      [
+        {
+          role: "user",
+          content: [{ type: "text", text: "请告诉我上海今天天气情况" }],
+        },
+      ],
+      null,
+      2,
+    ),
+  },
+  image_url: {
+    label: "image_url",
+    desc: "让 AI 看图 / OCR / 分析截图 / 识别物体",
+    json: JSON.stringify(
+      [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "这张图里有什么？" },
+            {
+              type: "image_url",
+              image_url: { url: "https://example.com/image.png" },
+            },
+          ],
+        },
+      ],
+      null,
+      2,
+    ),
+  },
+  input_audio: {
+    label: "input_audio",
+    desc: "语音转文字 / 语音内容理解 / 会议记录",
+    json: JSON.stringify(
+      [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_audio",
+              input_audio: { data: "<base64编码>", format: "wav" },
+            },
+          ],
+        },
+      ],
+      null,
+      2,
+    ),
+  },
+  file: {
+    label: "file",
+    desc: "PDF 分析 / Excel 处理 / 文档总结",
+    json: JSON.stringify(
+      [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "请总结这份文档的主要内容" },
+            { type: "file", file: { file_id: "file-xxx" } },
+          ],
+        },
+      ],
+      null,
+      2,
+    ),
+  },
+  combined: {
+    label: "组合使用",
+    desc: "content 是数组，可以混合多种类型",
+    json: JSON.stringify(
+      [
+        {
+          role: "user",
+          content: [
+            { type: "text", text: "这张图里的天气怎么样？" },
+            {
+              type: "image_url",
+              image_url: { url: "https://example.com/weather.png" },
+            },
+          ],
+        },
+      ],
+      null,
+      2,
+    ),
+  },
+};
+
+function ContentTypeModal({
+  open,
+  onClose,
+  onInsert,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onInsert: (json: string) => void;
+}) {
+  const { t } = useTranslation();
+  const tabs = Object.entries(CONTENT_TYPE_EXAMPLES).map(([key, val]) => ({
+    key,
+    label: val.label,
+    children: (
+      <div>
+        <Typography.Text
+          type="secondary"
+          style={{ display: "block", marginBottom: 8 }}
+        >
+          {t("cronJobs.typeDesc")}: {val.desc}
+        </Typography.Text>
+        <pre className={styles.codePreBlock}>
+          {val.json}
+        </pre>
+        <Button
+          type="primary"
+          size="small"
+          style={{ marginTop: 8 }}
+          onClick={() => {
+            onInsert(val.json);
+            onClose();
+          }}
+        >
+          {t("cronJobs.useThisTemplate")}
+        </Button>
+      </div>
+    ),
+  }));
+
+  return (
+    <Modal
+      title={t("cronJobs.contentTypeReference")}
+      open={open}
+      onCancel={onClose}
+      footer={null}
+      width={620}
+    >
+      <Tabs items={tabs} />
+    </Modal>
+  );
+}
+
+/** Extract text content from request JSON. */
+function extractTextFromRequestJson(jsonStr: string): string {
+  try {
+    const parsed = JSON.parse(jsonStr);
+    const parts: string[] = [];
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    for (const msg of arr) {
+      const content = msg?.content;
+      if (typeof content === "string") {
+        parts.push(content);
+        continue;
+      }
+      if (!Array.isArray(content)) continue;
+      for (const c of content) {
+        if (c.type === "text" && c.text) {
+          parts.push(c.text);
+        } else if (c.type === "image_url") {
+          parts.push(`[图片: ${c.image_url?.url || "..."}]`);
+        } else if (c.type === "input_audio") {
+          parts.push(`[音频: ${c.input_audio?.format || "audio"}]`);
+        } else if (c.type === "file") {
+          parts.push(`[文件: ${c.file?.file_id || "..."}]`);
+        }
+      }
+    }
+    return parts.join("\n");
+  } catch {
+    return "";
+  }
+}
 
 interface JobDrawerProps {
   open: boolean;
@@ -26,6 +208,20 @@ interface JobDrawerProps {
   onSubmit: (values: CronJob) => void;
 }
 
+const DEFAULT_REQUEST_INPUT = `[
+  {
+    "role": "user",
+    "content": [
+      {
+        "type": "text",
+        "text": "请告诉我上海今天天气情况，包括温度和是否下雨"
+      }
+    ]
+  }
+]`;
+
+const NEW_SESSION_VALUE = "__new_session__";
+
 export function JobDrawer({
   open,
   editingJob,
@@ -35,6 +231,51 @@ export function JobDrawer({
   onSubmit,
 }: JobDrawerProps) {
   const { t } = useTranslation();
+  const [sessions, setSessions] = useState<ChatSpec[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [typeModalOpen, setTypeModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setLoadingSessions(true);
+    api
+      .listSessions()
+      .then((list) => setSessions(list ?? []))
+      .catch(() => setSessions([]))
+      .finally(() => setLoadingSessions(false));
+  }, [open]);
+
+  const userIdOptions = useMemo(() => {
+    const ids = new Set<string>();
+    sessions.forEach((s) => {
+      if (s.user_id) ids.add(s.user_id);
+    });
+    if (ids.size === 0) ids.add("admin");
+    return Array.from(ids).map((id) => ({ label: id, value: id }));
+  }, [sessions]);
+
+  const sessionIdOptions = useMemo(() => {
+    const opts = sessions.map((s) => ({
+      label: s.name
+        ? `${s.name} (${s.id})`
+        : `${s.channel}:${s.user_id} (${s.id})`,
+      value: s.id,
+    }));
+    opts.unshift({
+      label: `✨ ${t("cronJobs.newSession")}`,
+      value: NEW_SESSION_VALUE,
+    });
+    return opts;
+  }, [sessions, t]);
+
+  const handleAutoFillText = () => {
+    const val = form.getFieldValue(["request", "input"]);
+    if (!val) return;
+    const text = extractTextFromRequestJson(val);
+    if (text) {
+      form.setFieldValue("text", text);
+    }
+  };
 
   return (
     <Drawer
@@ -59,15 +300,6 @@ export function JobDrawer({
         onFinish={onSubmit}
         initialValues={DEFAULT_FORM_VALUES}
       >
-        <Form.Item
-          name="id"
-          label={t("cronJobs.id")}
-          rules={[{ required: true, message: t("cronJobs.pleaseInputId") }]}
-          tooltip={t("cronJobs.idTooltip")}
-        >
-          <Input placeholder={t("cronJobs.jobIdPlaceholder")} />
-        </Form.Item>
-
         <Form.Item
           name="name"
           label={t("cronJobs.name")}
@@ -151,7 +383,7 @@ export function JobDrawer({
                 <Form.Item
                   name="cronDaysOfWeek"
                   label={t("cronJobs.cronDaysOfWeek")}
-                  rules={[{ required: true, message: "请选择至少一天" }]}
+                  rules={[{ required: true, message: t("cronJobs.pleaseSelectDays") }]}
                 >
                   <Checkbox.Group
                     options={[
@@ -243,8 +475,12 @@ export function JobDrawer({
           tooltip={t("cronJobs.taskTypeTooltip")}
         >
           <Select>
-            <Select.Option value="text">text</Select.Option>
-            <Select.Option value="agent">agent</Select.Option>
+            <Select.Option value="text">
+              text - {t("cronJobs.taskTypeTextDesc")}
+            </Select.Option>
+            <Select.Option value="agent">
+              agent - {t("cronJobs.taskTypeAgentDesc")}
+            </Select.Option>
           </Select>
         </Form.Item>
 
@@ -261,7 +497,20 @@ export function JobDrawer({
               <>
                 <Form.Item
                   name="text"
-                  label={t("cronJobs.text")}
+                  label={
+                    <span>
+                      {t("cronJobs.text")}
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<ScanOutlined />}
+                        style={{ marginLeft: 4, padding: 0 }}
+                        onClick={handleAutoFillText}
+                      >
+                        {t("cronJobs.autoDetectContent")}
+                      </Button>
+                    </span>
+                  }
                   required={textRequired}
                   rules={
                     textRequired
@@ -283,7 +532,20 @@ export function JobDrawer({
 
                 <Form.Item
                   name={["request", "input"]}
-                  label={t("cronJobs.requestInput")}
+                  label={
+                    <span>
+                      {t("cronJobs.requestInput")}
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<QuestionCircleOutlined />}
+                        style={{ marginLeft: 4, padding: 0 }}
+                        onClick={() => setTypeModalOpen(true)}
+                      >
+                        {t("cronJobs.viewTypeReference")}
+                      </Button>
+                    </span>
+                  }
                   required={agentRequired}
                   rules={[
                     ...(agentRequired
@@ -295,7 +557,7 @@ export function JobDrawer({
                         ]
                       : []),
                     {
-                      validator: (_, value) => {
+                      validator: (_: unknown, value: string) => {
                         if (!value) return Promise.resolve();
                         try {
                           JSON.parse(value);
@@ -310,36 +572,28 @@ export function JobDrawer({
                   ]}
                   tooltip={t("cronJobs.requestInputTooltip")}
                   extra={
-                    <span className={styles.formExtraText}>
-                      {t("cronJobs.requestInputExample")}
-                    </span>
+                    <div className={styles.formExtraText}>
+                      <div>{t("cronJobs.requestInputHint")}</div>
+                    </div>
                   }
                 >
                   <Input.TextArea
-                    rows={6}
-                    placeholder='[{"role":"user","content":[{"text":"Hello","type":"text"}]}]'
+                    rows={8}
+                    placeholder={DEFAULT_REQUEST_INPUT}
                     style={{ fontFamily: "monospace", fontSize: 12 }}
                   />
                 </Form.Item>
+
+                <ContentTypeModal
+                  open={typeModalOpen}
+                  onClose={() => setTypeModalOpen(false)}
+                  onInsert={(json) => {
+                    form.setFieldValue(["request", "input"], json);
+                  }}
+                />
               </>
             );
           }}
-        </Form.Item>
-
-        <Form.Item
-          name={["request", "session_id"]}
-          label={t("cronJobs.requestSessionId")}
-          tooltip={t("cronJobs.requestSessionIdTooltip")}
-        >
-          <Input placeholder="default" />
-        </Form.Item>
-
-        <Form.Item
-          name={["request", "user_id"]}
-          label={t("cronJobs.requestUserId")}
-          tooltip={t("cronJobs.requestUserIdTooltip")}
-        >
-          <Input placeholder="system" />
         </Form.Item>
 
         <Form.Item name={["dispatch", "type"]} label="DispatchType" hidden>
@@ -363,7 +617,18 @@ export function JobDrawer({
           rules={[{ required: true, message: t("cronJobs.pleaseInputUserId") }]}
           tooltip={t("cronJobs.dispatchTargetUserIdTooltip")}
         >
-          <Input placeholder="admin" />
+          <Select
+            showSearch
+            allowClear
+            loading={loadingSessions}
+            placeholder={t("cronJobs.selectUserId")}
+            options={userIdOptions}
+            filterOption={(input, option) =>
+              (option?.label?.toString() || "")
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+          />
         </Form.Item>
 
         <Form.Item
@@ -374,7 +639,17 @@ export function JobDrawer({
           ]}
           tooltip={t("cronJobs.dispatchTargetSessionIdTooltip")}
         >
-          <Input placeholder="default" />
+          <Select
+            showSearch
+            loading={loadingSessions}
+            placeholder={t("cronJobs.selectSessionId")}
+            options={sessionIdOptions}
+            filterOption={(input, option) =>
+              (option?.label?.toString() || "")
+                .toLowerCase()
+                .includes(input.toLowerCase())
+            }
+          />
         </Form.Item>
 
         <Form.Item

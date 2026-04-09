@@ -20,7 +20,6 @@ if (!(Test-Path $logDir)) {
 $ts = Get-Date -Format "yyyyMMdd-HHmmss"
 $logFile = Join-Path $logDir "uvicorn-$ts.log"
 
-$py = "D:\soft\program\Python\Python311\python.exe"
 $url = "http://$BindHost`:$Port/api/healthz"
 
 try {
@@ -33,15 +32,19 @@ try {
 }
 
 Write-Host "Starting app on http://$BindHost`:$Port ..."
-Write-Host "Log file: $logFile"
+Write-Host "Startup log file: $logFile"
 
 $launchCmd = @"
 Set-Location '$repoRoot'
 `$env:MILU_WORKING_DIR='$repoRoot'
 `$env:MILU_SECRET_DIR='$($env:MILU_SECRET_DIR)'
-& '$py' -m uvicorn copaw.app._app:app --host $BindHost --port $Port *> '$logFile'
+python -m uvicorn copaw.app._app:app --host $BindHost --port $Port *>> '$logFile'
 "@
-$proc = Start-Process -FilePath "powershell.exe" -ArgumentList "-NoProfile","-WindowStyle","Hidden","-Command",$launchCmd -WorkingDirectory $repoRoot -PassThru
+$proc = Start-Process -FilePath "powershell.exe" `
+    -ArgumentList "-WindowStyle", "Hidden", "-Command", $launchCmd `
+    -WorkingDirectory $repoRoot `
+    -WindowStyle Hidden `
+    -PassThru
 
 $deadline = (Get-Date).AddSeconds($TimeoutSec)
 $ready = $false

@@ -16,9 +16,9 @@ class LocalModelManager:
 
     _instance: LocalModelManager | None = None
 
-    DEFAULT_LLAMA_CPP_BASE_URL = (
-        # Mirror of "https://github.com/ggml-org/llama.cpp/releases/download"
-        "https://download.copaw.agentscope.io/files/models/llama_cpp"
+    DEFAULT_LLAMA_CPP_BASE_URLS = (
+        "https://download.copaw.agentscope.io/files/models/llama_cpp",
+        "https://github.com/ggml-org/llama.cpp/releases/download",
     )
     DEFAULT_LLAMA_CPP_RELEASE_TAG = "b8635"
 
@@ -53,7 +53,7 @@ class LocalModelManager:
                 await self._llamacpp_backend.shutdown_server()
 
             self._llamacpp_backend.download(
-                self.DEFAULT_LLAMA_CPP_BASE_URL,
+                list(self.DEFAULT_LLAMA_CPP_BASE_URLS),
                 self.DEFAULT_LLAMA_CPP_RELEASE_TAG,
             )
             return server_was_running

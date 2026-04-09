@@ -403,6 +403,144 @@ if _docs_markdown_dir.is_dir():
         name="milu_docs_zh_assets",
     )
 
+_DOCS_MARKDOWN_RENDERER = MarkdownIt(
+    "commonmark",
+    {"html": True, "linkify": True},
+)
+
+
+def _slugify_docs_heading(text: str, fallback: str) -> str:
+    normalized = text.strip().lower()
+    normalized = re.sub(r"<[^>]+>", "", normalized)
+    normalized = re.sub(r"[^\w\u4e00-\u9fff\s-]", "", normalized)
+    normalized = re.sub(r"[-\s]+", "-", normalized).strip("-")
+    return normalized or fallback
+
+
+def _extract_docs_toc(markdown_text: str) -> list[dict[str, object]]:
+    toc: list[dict[str, object]] = []
+    current_section: dict[str, object] | None = None
+    section_index = 0
+    subsection_index = 0
+    main_content_started = False
+
+    for raw_line in markdown_text.splitlines():
+        line = raw_line.strip()
+        if line.startswith("## "):
+            title = line[3:].strip()
+            if title == "项目介绍":
+                main_content_started = True
+            if not main_content_started:
+                current_section = None
+                continue
+
+            section_index += 1
+            subsection_index = 0
+            current_section = {
+                "id": _slugify_docs_heading(title, f"section-{section_index}"),
+                "title": title,
+                "children": [],
+            }
+            toc.append(current_section)
+            continue
+
+        if line.startswith("### ") and current_section is not None:
+            subsection_index += 1
+            title = line[4:].strip()
+            child = {
+                "id": _slugify_docs_heading(
+                    title,
+                    f"{current_section['id']}-sub-{subsection_index}",
+                ),
+                "title": title,
+            }
+            current_section["children"].append(child)
+
+    return toc
+
+
+def _inject_docs_heading_ids(
+    rendered_html: str,
+    heading_entries: list[tuple[str, str]],
+) -> str:
+    if not heading_entries:
+        return rendered_html
+
+    entry_iter = iter(heading_entries)
+
+    def _replacer(match: re.Match[str]) -> str:
+        try:
+            heading_tag, heading_id = next(entry_iter)
+        except StopIteration:
+            return match.group(0)
+        return f"<{heading_tag} id=\"{heading_id}\" class=\"docs-heading\">"
+
+    pattern = re.compile(r"<(h[23])>")
+    return pattern.sub(_replacer, rendered_html, count=len(heading_entries))
+
+
+def _rewrite_docs_asset_links(rendered_html: str) -> str:
+    rendered_html = re.sub(
+        r'href="(?!https?://|mailto:|#|/)([^"]+)"',
+        lambda m: f'href="{urljoin(_DOCS_ASSETS_ROUTE + "/", m.group(1))}"',
+        rendered_html,
+    )
+    rendered_html = re.sub(
+        r'src="(?!https?://|data:|/)([^"]+)"',
+        lambda m: f'src="{urljoin(_DOCS_ASSETS_ROUTE + "/", m.group(1))}"',
+        rendered_html,
+    )
+    rendered_html = re.sub(
+        r"<img(?![^>]*\bloading=)([^>]*)>",
+        r'<img loading="lazy" decoding="async"\1>',
+        rendered_html,
+    )
+    return rendered_html
+
+
+def _render_docs_sections(
+    markdown_text: str,
+    toc: list[dict[str, object]],
+) -> str:
+    toc_by_title = {
+        str(section["title"]): section
+        for section in toc
+    }
+    parts = re.split(r"(?=^##\s+)", markdown_text, flags=re.MULTILINE)
+    sections: list[str] = []
+    main_content_started = False
+    for index, part in enumerate(parts):
+        stripped = part.strip()
+        if not stripped:
+            continue
+        rendered = _DOCS_MARKDOWN_RENDERER.render(stripped)
+        heading_entries: list[tuple[str, str]] = []
+        section_title = ""
+        if index > 0:
+            lines = stripped.splitlines()
+            if lines:
+                section_title = (
+                    lines[0][3:].strip() if lines[0].startswith("## ") else ""
+                )
+                section_meta = toc_by_title.get(section_title)
+                if section_meta is not None:
+                    heading_entries.append(("h2", str(section_meta["id"])))
+                    for child in section_meta["children"]:
+                        heading_entries.append(("h3", str(child["id"])))
+        rendered = _inject_docs_heading_ids(rendered, heading_entries)
+        rendered = _rewrite_docs_asset_links(rendered)
+        if section_title == "项目介绍":
+            main_content_started = True
+
+        if index == 0:
+            css_class = "docs-section docs-section-intro"
+        elif not main_content_started:
+            css_class = "docs-section docs-section-overview"
+        else:
+            css_class = "docs-section"
+        sections.append(f"<section class='{css_class}'>{rendered}</section>")
+    return "".join(sections)
+
 
 def _docs_content_version() -> int:
     md_path = milu_docs_zh_all_markdown_path()
@@ -435,50 +573,114 @@ def _render_milu_docs_zh():
     if not f.is_file():
         raise HTTPException(status_code=404, detail="Documentation file not found")
     text = f.read_text(encoding="utf-8", errors="replace")
-    rendered = MarkdownIt("commonmark", {"html": True, "linkify": True}).render(text)
-    rendered = re.sub(
-        r'href="(?!https?://|mailto:|#|/)([^"]+)"',
-        lambda m: f'href="{urljoin(_DOCS_ASSETS_ROUTE + "/", m.group(1))}"',
-        rendered,
-    )
-    rendered = re.sub(
-        r'src="(?!https?://|data:|/)([^"]+)"',
-        lambda m: f'src="{urljoin(_DOCS_ASSETS_ROUTE + "/", m.group(1))}"',
-        rendered,
+    toc = _extract_docs_toc(text)
+    rendered = _render_docs_sections(text, toc)
+    toc_html = "".join(
+        (
+            "<li class='docs-toc-item'>"
+            f"<a href='#{section['id']}' class='docs-toc-link'>{section['title']}</a>"
+            + (
+                "<ul class='docs-toc-sublist'>"
+                + "".join(
+                    f"<li><a href='#{child['id']}' class='docs-toc-sublink'>{child['title']}</a></li>"
+                    for child in section["children"]
+                )
+                + "</ul>"
+                if section["children"]
+                else ""
+            )
+            + "</li>"
+        )
+        for section in toc
     )
     version = _docs_content_version()
     return HTMLResponse(
         content=(
             "<!doctype html><html><head><meta charset='utf-8'/>"
+            "<meta name='viewport' content='width=device-width, initial-scale=1'/>"
             "<title>MiLu</title>"
-            "<style>body{max-width:1100px;margin:24px auto;padding:0 20px;"
-            "font-family:Arial,Helvetica,sans-serif;line-height:1.7;color:#222}"
+            "<style>:root{color-scheme:light}"
+            "html{scroll-behavior:smooth}"
+            "body{max-width:1400px;margin:24px auto;padding:0 20px;"
+            "font-family:Arial,Helvetica,sans-serif;line-height:1.7;color:#222;"
+            "background:#fff}"
+            ".docs-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:32px;align-items:start}"
+            ".docs-sidebar{position:sticky;top:20px;max-height:calc(100vh - 40px);overflow:auto;"
+            "padding:18px 16px;border:1px solid #e5e7eb;border-radius:16px;background:#fafafa}"
+            ".docs-sidebar-title{margin:0 0 12px;font-size:14px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.04em}"
+            ".docs-toc{list-style:none;padding:0;margin:0}"
+            ".docs-toc-item{margin:0 0 12px}"
+            ".docs-toc-link,.docs-toc-sublink{display:block;color:#2d3748;text-decoration:none;transition:color .15s ease,background-color .15s ease}"
+            ".docs-toc-link{font-weight:600;padding:6px 8px;border-radius:8px}"
+            ".docs-toc-link:hover,.docs-toc-sublink:hover{color:#2f5fd7}"
+            ".docs-toc-sublist{list-style:none;padding:6px 0 0 12px;margin:0}"
+            ".docs-toc-sublist li{margin:0 0 6px}"
+            ".docs-toc-sublink{font-size:14px;color:#4a5568;padding:4px 8px;border-radius:8px}"
+            ".docs-toc-link-active{background:#eaf1ff;color:#1f4ed8}"
+            ".docs-toc-sublink-active{background:#eef4ff;color:#1f4ed8;font-weight:600}"
+            ".docs-main{min-width:0;padding-bottom:48px}"
+            ".docs-mobile-toc{display:none;margin:0 0 20px;padding:12px 14px;border:1px solid #e5e7eb;border-radius:12px;background:#fafafa}"
+            ".docs-mobile-toc summary{cursor:pointer;font-weight:600}"
+            ".docs-mobile-toc .docs-toc{margin-top:10px}"
+            ".docs-section{content-visibility:auto;contain-intrinsic-size:1200px;"
+            "contain:layout style paint;margin:0 0 28px}"
+            ".docs-section-intro{display:none}"
+            ".docs-section-overview{display:none}"
+            ".docs-heading{scroll-margin-top:24px}"
             "img{max-width:100%;height:auto;display:block;margin:14px 0}"
             "a{color:#2f5fd7;text-decoration:none}a:hover{text-decoration:underline}"
             "code{background:#f4f4f4;padding:2px 4px;border-radius:4px}"
             "pre{background:#f7f7f7;padding:12px;border-radius:8px;overflow:auto}"
-            "table{border-collapse:collapse;width:100%;margin:10px 0}"
-            "th,td{border:1px solid #ddd;padding:8px;text-align:left}</style></head><body>"
+            "table{border-collapse:collapse;width:100%;margin:10px 0;display:block;overflow:auto}"
+            "th,td{border:1px solid #ddd;padding:8px;text-align:left}"
+            "@media (max-width: 980px){.docs-layout{grid-template-columns:1fr}.docs-sidebar{display:none}.docs-mobile-toc{display:block}}"
+            "</style></head><body>"
+            "<div class='docs-layout'>"
+            "<aside class='docs-sidebar'>"
+            "<h2 class='docs-sidebar-title'>目录</h2>"
+            f"<ul class='docs-toc'>{toc_html}</ul>"
+            "</aside>"
+            "<main class='docs-main' data-docs-version='"
+            f"{version}"
+            "'>"
             "<h1>MiLu</h1>"
-            f"<main data-docs-version='{version}'>"
+            "<details class='docs-mobile-toc'><summary>目录</summary>"
+            f"<ul class='docs-toc'>{toc_html}</ul>"
+            "</details>"
             + rendered
-            + "</main>"
+            + "</main></div>"
             "<script>"
             "(function(){"
-            "const host=document.querySelector('main');"
-            "if(!host)return;"
-            "let current=host.getAttribute('data-docs-version')||'0';"
-            "async function check(){"
-            "try{"
-            "const r=await fetch('/milu-docs-zh-meta',{cache:'no-store'});"
-            "if(!r.ok)return;"
-            "const j=await r.json();"
-            "if(String(j.version)!==String(current)){location.reload();}"
-            "}catch(_e){}"
+            "const links=[...document.querySelectorAll('.docs-toc-link,.docs-toc-sublink')];"
+            "const byId=new Map();"
+            "for(const link of links){const href=link.getAttribute('href')||'';if(href.startsWith('#')){byId.set(href.slice(1),link);}}"
+            "function setActive(id){"
+            "for(const link of links){link.classList.remove('docs-toc-link-active','docs-toc-sublink-active');}"
+            "if(!id)return;"
+            "const active=byId.get(id);"
+            "if(!active)return;"
+            "active.classList.add(active.classList.contains('docs-toc-sublink')?'docs-toc-sublink-active':'docs-toc-link-active');"
+            "const parentItem=active.closest('.docs-toc-item');"
+            "if(parentItem){const parentLink=parentItem.querySelector(':scope > .docs-toc-link');if(parentLink&&parentLink!==active){parentLink.classList.add('docs-toc-link-active');}}"
+            "active.scrollIntoView({block:'nearest'});"
             "}"
-            "setInterval(check,3000);"
+            "const headings=[...document.querySelectorAll('h2.docs-heading,h3.docs-heading')];"
+            "let currentId=headings[0]?.id||'';"
+            "if(location.hash){currentId=location.hash.slice(1);}"
+            "setActive(currentId);"
+            "const observer=new IntersectionObserver((entries)=>{"
+            "const visible=entries.filter((entry)=>entry.isIntersecting);"
+            "if(!visible.length)return;"
+            "visible.sort((a,b)=>a.boundingClientRect.top-b.boundingClientRect.top);"
+            "const nextId=visible[0].target.id;"
+            "if(nextId&&nextId!==currentId){currentId=nextId;setActive(currentId);}"
+            "},{rootMargin:'-15% 0px -70% 0px',threshold:[0,1]});"
+            "for(const heading of headings){observer.observe(heading);}"
+            "window.addEventListener('hashchange',()=>{const nextId=location.hash.slice(1);if(nextId){currentId=nextId;setActive(nextId);}});"
+            "for(const link of links){link.addEventListener('click',()=>{const href=link.getAttribute('href')||'';if(href.startsWith('#')){const nextId=href.slice(1);currentId=nextId;setActive(nextId);}});}"
             "})();"
-            "</script></body></html>"
+            "</script>"
+            "</body></html>"
         )
     )
 

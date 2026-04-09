@@ -147,11 +147,13 @@ class _FakeHttpxClient:
         chunk_delay: float = 0.0,
         status_code: int = 200,
         exc: Exception | None = None,
+        kwargs: dict[str, Any] | None = None,
     ) -> None:
         self._payload = payload
         self._chunk_delay = chunk_delay
         self._status_code = status_code
         self._exc = exc
+        self.kwargs = kwargs or {}
         self.stream_calls: list[tuple[str, str, dict[str, str] | None]] = []
 
     def stream(
@@ -504,17 +506,37 @@ def _patch_httpx_client(
     status_code: int = 200,
     exc: Exception | None = None,
 ) -> _FakeHttpxClient:
-    fake_client = _FakeHttpxClient(
-        payload,
-        chunk_delay=chunk_delay,
-        status_code=status_code,
-        exc=exc,
-    )
+    fake_client = _FakeHttpxClient(payload)
     monkeypatch.setattr(
         downloader_module.httpx,
         "Client",
-        lambda **kwargs: fake_client,
+        lambda **kwargs: _configure_fake_httpx_client(
+            fake_client,
+            payload=payload,
+            chunk_delay=chunk_delay,
+            status_code=status_code,
+            exc=exc,
+            kwargs=kwargs,
+        ),
     )
+    return fake_client
+
+
+def _configure_fake_httpx_client(
+    fake_client: _FakeHttpxClient,
+    *,
+    payload: bytes,
+    chunk_delay: float,
+    status_code: int,
+    exc: Exception | None,
+    kwargs: dict[str, Any],
+) -> _FakeHttpxClient:
+    fake_client._payload = payload
+    fake_client._chunk_delay = chunk_delay
+    fake_client._status_code = status_code
+    fake_client._exc = exc
+    fake_client.kwargs = kwargs
+    fake_client.stream_calls.clear()
     return fake_client
 
 
@@ -584,6 +606,39 @@ def test_start_download_delegates_to_process_controller(
     assert controller.started_spec.task.payload["file_name"] == (
         "llama-b1234-bin-ubuntu-x64.tar.gz"
     )
+    assert controller.started_spec.task.payload["urls"] == [
+        "https://example.com/releases/b1234/"
+        "llama-b1234-bin-ubuntu-x64.tar.gz",
+    ]
+
+
+def test_start_download_preserves_multiple_source_urls(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    downloader = _build_downloader(monkeypatch)
+    downloader.target_dir = tmp_path / "install"
+    controller = _FakeDownloadController()
+    downloader.__dict__["_download_controller"] = controller
+
+    downloader.start_download(
+        base_url=[
+            "https://mirror.example.com/llama_cpp",
+            "https://github.com/ggml-org/llama.cpp/releases/download",
+        ],
+        tag="b1234",
+    )
+
+    assert controller.started_spec.task.payload["urls"] == [
+        "https://mirror.example.com/llama_cpp/b1234/"
+        "llama-b1234-bin-ubuntu-x64.tar.gz",
+        "https://github.com/ggml-org/llama.cpp/releases/download/b1234/"
+        "llama-b1234-bin-ubuntu-x64.tar.gz",
+    ]
+    assert controller.started_spec.source == (
+        "https://mirror.example.com/llama_cpp/b1234/"
+        "llama-b1234-bin-ubuntu-x64.tar.gz"
+    )
 
 
 @pytest.mark.asyncio
@@ -622,7 +677,7 @@ def test_download_worker_uses_browser_like_headers(
 
     downloader._download_worker(
         {
-            "url": download_url,
+            "urls": [download_url],
             "staging_dir": str(staging_dir),
             "file_name": "llama-b1234-bin-win-cpu-x64.zip",
             "chunk_size": 64,
@@ -643,6 +698,179 @@ def test_download_worker_uses_browser_like_headers(
     assert messages[-1]["type"] == "result"
     assert isinstance(messages[-1]["payload"], dict)
     assert messages[-1]["payload"]["status"] == "completed"
+    assert fake_client.kwargs["trust_env"] is False
+
+
+def test_download_worker_can_opt_in_to_proxy_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    downloader = _build_downloader(monkeypatch)
+    staging_dir = tmp_path / "proxy-enabled-install"
+    fake_client = _patch_httpx_client(monkeypatch, _make_zip_payload())
+    download_url = (
+        "https://example.com/releases/b1234/llama-b1234-bin-win-cpu-x64.zip"
+    )
+
+    class _Queue:
+        def put(self, item):
+            del item
+
+    downloader._download_worker(
+        {
+            "urls": [download_url],
+            "staging_dir": str(staging_dir),
+            "file_name": "llama-b1234-bin-win-cpu-x64.zip",
+            "chunk_size": 64,
+            "timeout": 30,
+            "headers": downloader._download_headers,
+            "trust_env": True,
+            "proxy_envs": {"HTTP_PROXY": "http://127.0.0.1:9"},
+        },
+        _Queue(),
+    )
+
+    assert fake_client.kwargs["trust_env"] is True
+
+
+def test_download_worker_falls_back_to_second_source(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    downloader = _build_downloader(monkeypatch)
+    staging_dir = tmp_path / "fallback-install"
+    first_url = "https://mirror.example.com/releases/b1234/file.zip"
+    second_url = "https://github.com/ggml-org/llama.cpp/releases/download/b1234/file.zip"
+    request = httpx.Request("GET", first_url)
+
+    class _Queue:
+        def __init__(self) -> None:
+            self.messages: list[dict[str, object]] = []
+
+        def put(self, item):
+            self.messages.append(item)
+
+    queue = _Queue()
+    call_urls: list[str] = []
+
+    class _PerUrlClient:
+        def __init__(self, **kwargs: Any) -> None:
+            self.kwargs = kwargs
+
+        def stream(
+            self,
+            method: str,
+            url: str,
+            headers: dict[str, str] | None = None,
+        ) -> _FakeStreamResponse:
+            del method, headers
+            call_urls.append(url)
+            if url == first_url:
+                raise httpx.ReadError("boom", request=request)
+            return _FakeStreamResponse(_make_zip_payload())
+
+        def __enter__(self) -> _PerUrlClient:
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    monkeypatch.setattr(
+        downloader_module.httpx,
+        "Client",
+        lambda **kwargs: _PerUrlClient(**kwargs),
+    )
+
+    downloader._download_worker(
+        {
+            "urls": [first_url, second_url],
+            "staging_dir": str(staging_dir),
+            "file_name": "llama-b1234-bin-win-cpu-x64.zip",
+            "chunk_size": 64,
+            "timeout": 30,
+            "headers": downloader._download_headers,
+            "trust_env": False,
+            "proxy_envs": {},
+        },
+        queue,
+    )
+
+    assert call_urls == [first_url, second_url]
+    assert any(message.get("source") == second_url for message in queue.messages)
+    assert queue.messages[-1]["type"] == "result"
+    assert isinstance(queue.messages[-1]["payload"], dict)
+    assert queue.messages[-1]["payload"]["status"] == "completed"
+
+
+def test_download_worker_reports_all_sources_on_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    downloader = _build_downloader(monkeypatch)
+    first_url = "https://mirror.example.com/releases/b1234/file.zip"
+    second_url = "https://github.com/ggml-org/llama.cpp/releases/download/b1234/file.zip"
+
+    request_one = httpx.Request("GET", first_url)
+    request_two = httpx.Request("GET", second_url)
+
+    class _Queue:
+        def __init__(self) -> None:
+            self.messages: list[dict[str, object]] = []
+
+        def put(self, item):
+            self.messages.append(item)
+
+    queue = _Queue()
+
+    class _AlwaysFailClient:
+        def __init__(self, **kwargs: Any) -> None:
+            self.kwargs = kwargs
+
+        def stream(
+            self,
+            method: str,
+            url: str,
+            headers: dict[str, str] | None = None,
+        ) -> _FakeStreamResponse:
+            del method, headers
+            if url == first_url:
+                raise httpx.ReadError("mirror boom", request=request_one)
+            raise httpx.ReadError("github boom", request=request_two)
+
+        def __enter__(self) -> _AlwaysFailClient:
+            return self
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            return None
+
+    monkeypatch.setattr(
+        downloader_module.httpx,
+        "Client",
+        lambda **kwargs: _AlwaysFailClient(**kwargs),
+    )
+
+    downloader._download_worker(
+        {
+            "urls": [first_url, second_url],
+            "staging_dir": str(tmp_path / "all-fail"),
+            "file_name": "llama-b1234-bin-win-cpu-x64.zip",
+            "chunk_size": 64,
+            "timeout": 30,
+            "headers": downloader._download_headers,
+            "trust_env": True,
+            "proxy_envs": {"HTTP_PROXY": "http://127.0.0.1:9"},
+        },
+        queue,
+    )
+
+    assert queue.messages[-1]["type"] == "result"
+    assert isinstance(queue.messages[-1]["payload"], dict)
+    error = queue.messages[-1]["payload"]["error"]
+    assert isinstance(error, str)
+    assert first_url in error
+    assert second_url in error
+    assert "trying all sources" in error
+    assert "Current proxy environment may be invalid" in error
 
 
 def test_download_worker_emits_failure_result(
@@ -668,12 +896,14 @@ def test_download_worker_emits_failure_result(
 
     downloader._download_worker(
         {
-            "url": download_url,
+            "urls": [download_url],
             "staging_dir": str(tmp_path / "failure"),
             "file_name": "llama-b1234-bin-win-cpu-x64.zip",
             "chunk_size": 64,
             "timeout": 30,
             "headers": downloader._download_headers,
+            "trust_env": False,
+            "proxy_envs": {},
         },
         _Queue(),
     )
@@ -682,8 +912,9 @@ def test_download_worker_emits_failure_result(
     assert isinstance(messages[-1]["payload"], dict)
     assert messages[-1]["payload"]["status"] == "failed"
     assert messages[-1]["payload"]["error"] == (
-        "Unable to connect to the llama.cpp download server. "
-        f"Request URL: {download_url}."
+        "llama.cpp download failed after trying all sources: "
+        f"{download_url} -> Unable to connect to the llama.cpp download "
+        f"server. Request URL: {download_url}."
     )
 
 
@@ -729,12 +960,14 @@ def test_download_worker_maps_http_status_errors(
 
     downloader._download_worker(
         {
-            "url": download_url,
+            "urls": [download_url],
             "staging_dir": str(tmp_path / f"failure-{status_code}"),
             "file_name": "llama-b1234-bin-win-cpu-x64.zip",
             "chunk_size": 64,
             "timeout": 30,
             "headers": downloader._download_headers,
+            "trust_env": False,
+            "proxy_envs": {},
         },
         _Queue(),
     )
@@ -742,7 +975,10 @@ def test_download_worker_maps_http_status_errors(
     assert messages[-1]["type"] == "result"
     assert isinstance(messages[-1]["payload"], dict)
     assert messages[-1]["payload"]["status"] == "failed"
-    assert messages[-1]["payload"]["error"] == expected_error
+    assert messages[-1]["payload"]["error"] == (
+        "llama.cpp download failed after trying all sources: "
+        f"{download_url} -> {expected_error}"
+    )
 
 
 def test_cancel_download_delegates_to_controller(
@@ -779,8 +1015,34 @@ def test_finalize_download_result_moves_staging_dir(
 
     assert result.local_path == str(final_dir)
     assert downloaded_bytes is None
-    assert not staging_dir.exists()
     assert (final_dir / "bin" / "server").read_text() == "tar-binary"
+
+
+def test_finalize_download_result_ignores_archive_files_in_staging(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    downloader = _build_downloader(monkeypatch)
+    staging_dir = tmp_path / "staging-with-archive"
+    final_dir = tmp_path / "final-with-archive"
+    staging_dir.mkdir()
+    (staging_dir / "bin").mkdir()
+    (staging_dir / "bin" / "llama-server.exe").write_text("binary")
+    (staging_dir / "llama-b1234-bin-win-cuda-13.1-x64.zip").write_text("zip")
+
+    result, downloaded_bytes = downloader._finalize_download_result(
+        DownloadTaskResult(
+            status=DownloadTaskStatus.COMPLETED,
+            local_path=str(staging_dir),
+        ),
+        staging_dir=staging_dir,
+        final_dir=final_dir,
+    )
+
+    assert result.local_path == str(final_dir)
+    assert downloaded_bytes is None
+    assert (final_dir / "bin" / "llama-server.exe").read_text() == "binary"
+    assert not (final_dir / "llama-b1234-bin-win-cuda-13.1-x64.zip").exists()
 
 
 def test_download_worker_flattens_single_top_level_archive_dir(
@@ -806,7 +1068,7 @@ def test_download_worker_flattens_single_top_level_archive_dir(
 
     downloader._download_worker(
         {
-            "url": download_url,
+            "urls": [download_url],
             "staging_dir": str(staging_dir),
             "file_name": "llama-b1234-bin-ubuntu-x64.tar.gz",
             "chunk_size": 64,

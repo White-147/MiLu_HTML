@@ -12,7 +12,8 @@ export {
 } from "./skillMetadata";
 export { useConflictRenameModal } from "./useConflictRenameModal";
 export { ImportHubModal } from "./ImportHubModal";
-export { PoolTransferModal } from "./PoolTransferModal";
+export { BroadcastModal } from "./BroadcastModal";
+export { ImportBuiltinModal } from "./ImportBuiltinModal";
 
 export const SUPPORTED_SKILL_URL_PREFIXES = [
   "https://skills.sh/",

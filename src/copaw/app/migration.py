@@ -123,7 +123,7 @@ def _do_migrate_legacy_workspace() -> bool:
     default_agent_config = AgentProfileConfig(
         id="default",
         name="Default Agent",
-        description="Default CoPaw agent (migrated from legacy config)",
+        description="Default MiLu agent (migrated from legacy config)",
         workspace_dir=str(default_workspace),
         channels=config.channels if hasattr(config, "channels") else None,
         mcp=config.mcp if hasattr(config, "mcp") else None,
@@ -793,7 +793,7 @@ def _do_ensure_qa_agent() -> None:
         id=qa_id,
         name=BUILTIN_QA_AGENT_NAME,
         description=(
-            "Builtin Q&A helper for CoPaw setup, local config under "
+            "Builtin Q&A helper for MiLu setup, local config under "
             "COPAW_WORKING_DIR, and documentation. Prefer reading files "
             "before answering; use absolute paths for code outside this "
             "workspace."

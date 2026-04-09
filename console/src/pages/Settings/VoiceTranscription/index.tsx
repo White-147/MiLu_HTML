@@ -34,21 +34,28 @@ function VoiceTranscriptionPage() {
   const fetchSettings = async () => {
     setLoading(true);
     try {
-      const [modeRes, provTypeRes, provRes, lwStatus] = await Promise.all([
+      // Load the fast settings first so the page renders quickly
+      const [modeRes, provTypeRes, provRes] = await Promise.all([
         api.getAudioMode(),
         api.getTranscriptionProviderType(),
         api.getTranscriptionProviders(),
-        api.getLocalWhisperStatus(),
       ]);
       setAudioMode(modeRes.audio_mode ?? "auto");
       setProviderType(provTypeRes.transcription_provider_type ?? "disabled");
       setProviders(provRes.providers ?? []);
       setSelectedProviderId(provRes.configured_provider_id ?? "");
-      setLocalWhisperStatus(lwStatus);
+      setLoading(false);
+
+      // Load the slow local whisper status in the background
+      try {
+        const lwStatus = await api.getLocalWhisperStatus();
+        setLocalWhisperStatus(lwStatus);
+      } catch {
+        /* local whisper status is non-critical */
+      }
     } catch (err) {
       console.error("Failed to load voice transcription settings:", err);
       message.error(t("voiceTranscription.loadFailed"));
-    } finally {
       setLoading(false);
     }
   };
@@ -58,6 +65,26 @@ function VoiceTranscriptionPage() {
   }, []);
 
   const handleSave = async () => {
+    if (providerType === "whisper_api" && availableProviders.length === 0) {
+      message.warning(t("voiceTranscription.noProviderCannotSave"));
+      return;
+    }
+    if (
+      providerType === "whisper_api" &&
+      !selectedProviderId &&
+      availableProviders.length > 0
+    ) {
+      message.warning(t("voiceTranscription.selectProviderFirst"));
+      return;
+    }
+    if (
+      providerType === "local_whisper" &&
+      localWhisperStatus &&
+      !localWhisperStatus.available
+    ) {
+      message.warning(t("voiceTranscription.localWhisperNotReady"));
+      return;
+    }
     setSaving(true);
     try {
       const promises: Promise<unknown>[] = [
@@ -77,6 +104,8 @@ function VoiceTranscriptionPage() {
     }
   };
 
+  const availableProviders = providers.filter((p) => p.available);
+
   if (loading) {
     return (
       <div className={styles.page}>
@@ -87,7 +116,6 @@ function VoiceTranscriptionPage() {
     );
   }
 
-  const availableProviders = providers.filter((p) => p.available);
   const showProviderSection = audioMode !== "native";
   const isLocalWhisper = providerType === "local_whisper";
   const isWhisperApi = providerType === "whisper_api";

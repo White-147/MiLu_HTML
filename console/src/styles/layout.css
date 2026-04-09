@@ -895,10 +895,9 @@ html.dark-mode .ant-menu-submenu-title {
   overflow: auto;
   background-color: #fff;
   border-radius: 8px;
-  /* 8px */
   box-sizing: border-box;
   border: 1px solid #eae9e7;
-  /* #EAE9E7 */
+  min-width: 0;
 }
 
 .table-container {
@@ -1027,4 +1026,17 @@ html.dark-mode .ant-empty-description {
 
 html.dark-mode .milu-input-prefix {
   color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Global fix: ensure sticky table headers have solid backgrounds in dark mode */
+html.dark-mode .milu-table-thead > tr > th,
+html.dark-mode .ant-table-thead > tr > th {
+  background: #1a1b26 !important;
+}
+
+html.dark-mode .milu-table-cell-fix-left,
+html.dark-mode .milu-table-cell-fix-right,
+html.dark-mode .ant-table-cell-fix-left,
+html.dark-mode .ant-table-cell-fix-right {
+  background: inherit !important;
 }

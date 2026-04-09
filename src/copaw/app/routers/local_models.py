@@ -290,10 +290,6 @@ async def start_llamacpp_server(
             ],
         },
     )
-    await provider_manager.activate_model(
-        provider_id="copaw-local",
-        model_id=payload.model_id,
-    )
     return StartServerResponse(
         port=port,
         model_name=payload.model_id,

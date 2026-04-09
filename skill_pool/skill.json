@@ -1,6 +1,6 @@
 {
   "schema_version": "skill-pool-manifest.v1",
-  "version": 1775542773157,
+  "version": 1775639722109,
   "skills": {
     "browser_cdp": {
       "name": "browser_cdp",
@@ -14,7 +14,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.387320Z"
+      "updated_at": "2026-04-07T07:49:36.740992Z"
     },
     "browser_visible": {
       "name": "browser_visible",
@@ -28,7 +28,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.391561Z"
+      "updated_at": "2026-04-07T07:49:36.743084Z"
     },
     "channel_message": {
       "name": "channel_message",
@@ -42,7 +42,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.391561Z"
+      "updated_at": "2026-04-07T07:49:36.743084Z"
     },
     "copaw_source_index": {
       "name": "copaw_source_index",
@@ -56,7 +56,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.391561Z"
+      "updated_at": "2026-04-07T07:49:36.747338Z"
     },
     "cron": {
       "name": "cron",
@@ -70,7 +70,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.391561Z"
+      "updated_at": "2026-04-07T07:49:36.747338Z"
     },
     "dingtalk_channel": {
       "name": "dingtalk_channel",
@@ -84,7 +84,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.395585Z"
+      "updated_at": "2026-04-07T07:49:36.751690Z"
     },
     "docx": {
       "name": "docx",
@@ -98,7 +98,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.398708Z"
+      "updated_at": "2026-04-07T07:49:36.757022Z"
     },
     "file_reader": {
       "name": "file_reader",
@@ -112,7 +112,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.452180Z"
+      "updated_at": "2026-04-07T07:49:36.868741Z"
     },
     "guidance": {
       "name": "guidance",
@@ -126,7 +126,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.452180Z"
+      "updated_at": "2026-04-07T07:49:36.872462Z"
     },
     "himalaya": {
       "name": "himalaya",
@@ -142,7 +142,7 @@
         ],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.456394Z"
+      "updated_at": "2026-04-07T07:49:36.876704Z"
     },
     "multi_agent_collaboration": {
       "name": "multi_agent_collaboration",
@@ -156,7 +156,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.456394Z"
+      "updated_at": "2026-04-07T07:49:36.880723Z"
     },
     "news": {
       "name": "news",
@@ -170,7 +170,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.460039Z"
+      "updated_at": "2026-04-07T07:49:36.885141Z"
     },
     "pdf": {
       "name": "pdf",
@@ -184,7 +184,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.464293Z"
+      "updated_at": "2026-04-07T07:49:36.892607Z"
     },
     "pptx": {
       "name": "pptx",
@@ -198,7 +198,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.472111Z"
+      "updated_at": "2026-04-07T07:49:36.916344Z"
     },
     "xlsx": {
       "name": "xlsx",
@@ -212,7 +212,7 @@
         "require_bins": [],
         "require_envs": []
       },
-      "updated_at": "2026-04-06T05:42:49.524857Z"
+      "updated_at": "2026-04-07T07:49:37.060535Z"
     }
   },
   "builtin_skill_names": [

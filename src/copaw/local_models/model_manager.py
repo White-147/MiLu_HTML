@@ -6,12 +6,14 @@ from __future__ import annotations
 import importlib
 import logging
 import multiprocessing as mp
+import os
 import shutil
 import uuid
+from contextlib import contextmanager
+from enum import Enum
 from pathlib import Path
 from queue import Empty
 from typing import Any, Optional
-from enum import Enum
 
 import traceback
 import httpx
@@ -29,9 +31,39 @@ from .download_manager import (
 from ..utils import system_info
 from ..utils.stdio import ensure_standard_streams
 from ..providers.provider import ModelInfo
-from ..constant import DEFAULT_LOCAL_PROVIDER_DIR
+from ..constant import (
+    DEFAULT_LOCAL_PROVIDER_DIR,
+    LOCAL_MODEL_DOWNLOAD_TRUST_ENV,
+)
 
 logger = logging.getLogger(__name__)
+
+_PROXY_ENV_KEYS = (
+    "HTTP_PROXY",
+    "HTTPS_PROXY",
+    "ALL_PROXY",
+    "http_proxy",
+    "https_proxy",
+    "all_proxy",
+)
+
+
+@contextmanager
+def _temporary_proxy_env_passthrough(trust_env: bool):
+    """Optionally clear proxy env vars for flaky desktop environments."""
+    if trust_env:
+        yield
+        return
+
+    original_values = {
+        key: os.environ.pop(key, None) for key in _PROXY_ENV_KEYS
+    }
+    try:
+        yield
+    finally:
+        for key, value in original_values.items():
+            if value is not None:
+                os.environ[key] = value
 
 
 class DownloadSource(str, Enum):
@@ -84,45 +116,45 @@ class ModelManager:
             models = [
                 LocalModelInfo(
                     id="AgentScope/CoPaw-Flash-2B-Q4_K_M",
-                    name="CoPaw-Flash-2B-Q4_K_M",
+                    name="MiLu-Flash-2B-Q4_K_M",
                     size_bytes=1560460768,
-                    source=DownloadSource.MODELSCOPE,
+                    source=DownloadSource.HUGGINGFACE,
                 ),
                 LocalModelInfo(
                     id="AgentScope/CoPaw-Flash-2B-Q8_0",
-                    name="CoPaw-Flash-2B-Q8_0",
+                    name="MiLu-Flash-2B-Q8_0",
                     size_bytes=2552356320,
-                    source=DownloadSource.MODELSCOPE,
+                    source=DownloadSource.HUGGINGFACE,
                 ),
             ]
         elif memory_gb <= 16:
             models = [
                 LocalModelInfo(
                     id="AgentScope/CoPaw-Flash-4B-Q4_K_M",
-                    name="CoPaw-Flash-4B-Q4_K_M",
+                    name="MiLu-Flash-4B-Q4_K_M",
                     size_bytes=3066384736,
-                    source=DownloadSource.MODELSCOPE,
+                    source=DownloadSource.HUGGINGFACE,
                 ),
                 LocalModelInfo(
                     id="AgentScope/CoPaw-Flash-4B-Q8_0",
-                    name="CoPaw-Flash-4B-Q8_0",
+                    name="MiLu-Flash-4B-Q8_0",
                     size_bytes=5157833056,
-                    source=DownloadSource.MODELSCOPE,
+                    source=DownloadSource.HUGGINGFACE,
                 ),
             ]
         else:
             models = [
                 LocalModelInfo(
                     id="AgentScope/CoPaw-Flash-9B-Q4_K_M",
-                    name="CoPaw-Flash-9B-Q4_K_M",
+                    name="MiLu-Flash-9B-Q4_K_M",
                     size_bytes=5476080128,
-                    source=DownloadSource.MODELSCOPE,
+                    source=DownloadSource.HUGGINGFACE,
                 ),
                 LocalModelInfo(
                     id="AgentScope/CoPaw-Flash-9B-Q8_0",
-                    name="CoPaw-Flash-9B-Q8_0",
+                    name="MiLu-Flash-9B-Q8_0",
                     size_bytes=10590617600,
-                    source=DownloadSource.MODELSCOPE,
+                    source=DownloadSource.HUGGINGFACE,
                 ),
             ]
 
@@ -187,12 +219,13 @@ class ModelManager:
         final_dir.parent.mkdir(parents=True, exist_ok=True)
         self._download_tmp_dir.mkdir(parents=True, exist_ok=True)
         resolved_source = source or self._resolve_download_source()
+        remote_repo_id = self._resolve_remote_repo_id(repo_id, resolved_source)
         total_bytes = self._estimate_download_size(
-            repo_id=repo_id,
+            repo_id=remote_repo_id,
             source=resolved_source,
         )
         has_gguf, error_msg = self._check_gguf_exists(
-            repo_id=repo_id,
+            repo_id=remote_repo_id,
             source=resolved_source,
         )
         if not has_gguf:
@@ -201,7 +234,7 @@ class ModelManager:
         task_id = uuid.uuid4().hex
         staging_dir = self._download_tmp_dir / task_id
         payload = {
-            "repo_id": repo_id,
+            "repo_id": remote_repo_id,
             "source": resolved_source.value,
             "staging_dir": str(staging_dir),
         }
@@ -283,6 +316,21 @@ class ModelManager:
         if self._probe_huggingface():
             return DownloadSource.HUGGINGFACE
         return DownloadSource.MODELSCOPE
+
+    def _resolve_remote_repo_id(
+        self,
+        repo_id: str,
+        source: DownloadSource,
+    ) -> str:
+        """Map the canonical UI repo id to the source-specific remote id."""
+        namespace, _, model_name = repo_id.partition("/")
+        if not model_name:
+            return repo_id
+        if source == DownloadSource.HUGGINGFACE and namespace == "AgentScope":
+            return f"agentscope-ai/{model_name}"
+        if source == DownloadSource.MODELSCOPE and namespace == "agentscope-ai":
+            return f"AgentScope/{model_name}"
+        return repo_id
 
     def _estimate_download_size(
         self,
@@ -378,10 +426,13 @@ class ModelManager:
                 "huggingface_hub is required for Hugging Face downloads.",
             ) from exc
 
-        return snapshot_download(
-            repo_id=repo_id,
-            local_dir=str(local_dir),
-        )
+        with _temporary_proxy_env_passthrough(
+            LOCAL_MODEL_DOWNLOAD_TRUST_ENV,
+        ):
+            return snapshot_download(
+                repo_id=repo_id,
+                local_dir=str(local_dir),
+            )
 
     @staticmethod
     def _download_from_modelscope(
@@ -389,10 +440,13 @@ class ModelManager:
         local_dir: Path,
     ) -> str:
         """Download a model repository from ModelScope."""
-        return ModelManager._get_modelscope_snapshot_download()(
-            model_id=repo_id,
-            local_dir=str(local_dir),
-        )
+        with _temporary_proxy_env_passthrough(
+            LOCAL_MODEL_DOWNLOAD_TRUST_ENV,
+        ):
+            return ModelManager._get_modelscope_snapshot_download()(
+                model_id=repo_id,
+                local_dir=str(local_dir),
+            )
 
     def _estimate_huggingface_size(
         self,
@@ -405,11 +459,14 @@ class ModelManager:
             return None
 
         try:
-            info = HfApi().repo_info(
-                repo_id=repo_id,
-                repo_type="model",
-                files_metadata=True,
-            )
+            with _temporary_proxy_env_passthrough(
+                LOCAL_MODEL_DOWNLOAD_TRUST_ENV,
+            ):
+                info = HfApi().repo_info(
+                    repo_id=repo_id,
+                    repo_type="model",
+                    files_metadata=True,
+                )
         except (OSError, RuntimeError, TypeError, ValueError):
             return None
 
@@ -438,9 +495,12 @@ class ModelManager:
             return None
 
         try:
-            files = hub_api_module.HubApi().get_model_files(
-                repo_id,
-            )
+            with _temporary_proxy_env_passthrough(
+                LOCAL_MODEL_DOWNLOAD_TRUST_ENV,
+            ):
+                files = hub_api_module.HubApi().get_model_files(
+                    repo_id,
+                )
         except (OSError, RuntimeError, TypeError, ValueError):
             return None
 
@@ -462,7 +522,10 @@ class ModelManager:
         except ImportError:
             return False, "`huggingface_hub` is not installed"
         try:
-            files = HfApi().list_repo_files(repo_id=repo_id)
+            with _temporary_proxy_env_passthrough(
+                LOCAL_MODEL_DOWNLOAD_TRUST_ENV,
+            ):
+                files = HfApi().list_repo_files(repo_id=repo_id)
             if any(f.endswith(".gguf") for f in files):
                 return True, ""
             return (
@@ -483,7 +546,10 @@ class ModelManager:
         except ImportError:
             return False, "`modelscope` is not installed"
         try:
-            files = hub_api_module.HubApi().get_model_files(repo_id)
+            with _temporary_proxy_env_passthrough(
+                LOCAL_MODEL_DOWNLOAD_TRUST_ENV,
+            ):
+                files = hub_api_module.HubApi().get_model_files(repo_id)
         except (OSError, RuntimeError, TypeError, ValueError):
             return False, f"Failed to fetch info from {repo_id}"
 
@@ -514,6 +580,7 @@ class ModelManager:
                 "https://huggingface.co",
                 follow_redirects=True,
                 timeout=5,
+                trust_env=LOCAL_MODEL_DOWNLOAD_TRUST_ENV,
             )
         except httpx.HTTPError:
             return False

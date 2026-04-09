@@ -5,6 +5,7 @@ import type { ModelSlotRequest } from "../../../../../api/types";
 import api from "../../../../../api";
 import { useTranslation } from "react-i18next";
 import { useAppMessage } from "../../../../../hooks/useAppMessage";
+import { normalizeMiLuBranding } from "../../../../../utils/brandText";
 import styles from "../../index.module.less";
 
 interface ModelsSectionProps {
@@ -128,7 +129,7 @@ export function ModelsSection({
             onChange={handleProviderChange}
             options={eligible.map((p) => ({
               value: p.id,
-              label: p.name,
+              label: normalizeMiLuBranding(p.name),
             }))}
           />
         </div>
@@ -147,7 +148,7 @@ export function ModelsSection({
             onChange={handleModelChange}
             options={modelOptions.map((m) => ({
               value: m.id,
-              label: `${m.name} (${m.id})`,
+              label: `${normalizeMiLuBranding(m.name)} (${normalizeMiLuBranding(m.id)})`,
             }))}
           />
         </div>

@@ -34,7 +34,6 @@ import {
   SparkSearchUserLine,
   SparkMenuExpandLine,
   SparkMenuFoldLine,
-  SparkOtherLine,
 } from "@agentscope-ai/icons";
 import { clearAuthToken } from "../api/config";
 import { authApi } from "../api/modules/auth";
@@ -175,12 +174,6 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
       label: t("nav.skills"),
     },
     {
-      key: "skill-pool",
-      icon: <SparkOtherLine size={18} />,
-      path: "/skill-pool",
-      label: t("nav.skillPool", "Skill Pool"),
-    },
-    {
       key: "tools",
       icon: <SparkToolLine size={18} />,
       path: "/tools",
@@ -314,11 +307,6 @@ export default function Sidebar({ selectedKey }: SidebarProps) {
           key: "models",
           label: collapsed ? null : t("nav.models"),
           icon: <SparkModePlazaLine size={16} />,
-        },
-        {
-          key: "skill-pool",
-          label: collapsed ? null : t("nav.skillPool", "Skill Pool"),
-          icon: <SparkOtherLine size={16} />,
         },
         {
           key: "environments",

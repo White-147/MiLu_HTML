@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Button, Card, Form, Modal, Table } from "@agentscope-ai/design";
 import dayjs from "dayjs";
+import { useNavigate } from "react-router-dom";
 import type { CronJobSpecOutput } from "../../../api/types";
 import { useTranslation } from "react-i18next";
 import api from "../../../api";
@@ -16,8 +17,28 @@ import styles from "./index.module.less";
 
 type CronJob = CronJobSpecOutput;
 
+function extractUserTextFromJob(job: CronJob): string {
+  if (job.task_type === "text" && job.text) return job.text.trim();
+  const input = job.request?.input;
+  if (!input) return "";
+  const messages = Array.isArray(input) ? input : [input];
+  const parts: string[] = [];
+  for (const msg of messages) {
+    if (typeof msg === "string") { parts.push(msg); continue; }
+    const content = msg?.content;
+    if (typeof content === "string") { parts.push(content); continue; }
+    if (Array.isArray(content)) {
+      for (const c of content) {
+        if (c?.type === "text" && c.text) parts.push(c.text);
+      }
+    }
+  }
+  return parts.join("\n");
+}
+
 function CronJobsPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const {
     jobs,
     loading,
@@ -119,6 +140,35 @@ function CronJobsPage() {
       cancelText: t("cronJobs.cancelText"),
       onOk: async () => {
         await executeNow(job.id);
+        const targetSessionId = job.dispatch?.target?.session_id;
+
+        // Pre-cache user text so the chat page can show it immediately
+        // while the model is still generating (mirrors the chat UI behaviour).
+        if (targetSessionId) {
+          const userText = extractUserTextFromJob(job);
+          if (userText) {
+            try {
+              sessionStorage.setItem(
+                `milu_pending_user_msg_${targetSessionId}`,
+                userText,
+              );
+            } catch { /* quota exceeded */ }
+          }
+        }
+
+        Modal.confirm({
+          title: t("cronJobs.executeStarted"),
+          content: t("cronJobs.goToChatContent"),
+          okText: t("cronJobs.goToChat"),
+          cancelText: t("cronJobs.stayHere"),
+          onOk: () => {
+            if (targetSessionId) {
+              navigate(`/chat/${encodeURIComponent(targetSessionId)}`);
+            } else {
+              navigate("/chat");
+            }
+          },
+        });
       },
     });
   };
@@ -129,7 +179,6 @@ function CronJobsPage() {
   };
 
   const handleSubmit = async (values: any) => {
-    // Serialize cron from form fields
     const cronParts: any = {
       type: values.cronType || "daily",
     };
@@ -159,7 +208,31 @@ function CronJobsPage() {
       },
     };
 
-    // Parse request input JSON
+    // Backend CronJobSpec requires an id field
+    if (editingJob) {
+      processedValues.id = editingJob.id;
+    } else if (!processedValues.id) {
+      processedValues.id = `job-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+
+    // When "new session" is selected, generate a unique session ID.
+    // The backend will auto-create the chat on first cron execution.
+    if (
+      processedValues.dispatch?.target?.session_id === "__new_session__"
+    ) {
+      const generatedId = `cron-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      processedValues = {
+        ...processedValues,
+        dispatch: {
+          ...processedValues.dispatch,
+          target: {
+            ...processedValues.dispatch.target,
+            session_id: generatedId,
+          },
+        },
+      };
+    }
+
     if (values.request?.input && typeof values.request.input === "string") {
       try {
         processedValues = {
@@ -170,7 +243,7 @@ function CronJobsPage() {
           },
         };
       } catch (error) {
-        console.error("❌ Failed to parse request.input JSON:", error);
+        console.error("Failed to parse request.input JSON:", error);
       }
     }
 

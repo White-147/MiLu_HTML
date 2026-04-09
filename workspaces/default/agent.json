@@ -255,6 +255,11 @@
       }
     }
   },
+  "last_dispatch": {
+    "channel": "console",
+    "user_id": "admin",
+    "session_id": "36134b67-8f37-4a64-86e7-8de1adc25941"
+  },
   "running": {
     "max_iters": 100,
     "llm_retry_enabled": true,
@@ -271,7 +276,7 @@
     "context_compact": {
       "token_count_model": "default",
       "token_count_use_mirror": false,
-      "token_count_estimate_divisor": 4,
+      "token_count_estimate_divisor": 4.0,
       "context_compact_enabled": true,
       "memory_compact_ratio": 0.75,
       "memory_reserve_ratio": 0.1,
@@ -312,6 +317,10 @@
       "provider_id": "",
       "model": ""
     }
+  },
+  "active_model": {
+    "provider_id": "yunwu",
+    "model": "claude-sonnet-4-6"
   },
   "language": "zh",
   "system_prompt_files": [

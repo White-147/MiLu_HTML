@@ -16,7 +16,10 @@ from typing import Any, Optional
 
 import httpx
 
-from copaw.constant import DEFAULT_LOCAL_PROVIDER_DIR
+from copaw.constant import (
+    DEFAULT_LOCAL_PROVIDER_DIR,
+    LLAMA_CPP_DOWNLOAD_TRUST_ENV,
+)
 
 from .download_manager import (
     DownloadProgressUpdate,
@@ -54,6 +57,7 @@ class LlamaCppBackend:
         self.cuda_version = self._resolve_cuda_version()
         self.backend = self._resolve_backend()
         self.target_dir = DEFAULT_LOCAL_PROVIDER_DIR / "bin"
+        self._download_trust_env = LLAMA_CPP_DOWNLOAD_TRUST_ENV
         self._context = mp.get_context("spawn")
         self._server_process: ManagedProcess | None = None
         self._server_log_task: asyncio.Task[None] | None = None
@@ -136,7 +140,7 @@ class LlamaCppBackend:
 
     def download(
         self,
-        base_url: str,
+        base_url: str | list[str] | tuple[str, ...],
         tag: str,
         chunk_size: int = 1024 * 1024,
         timeout: int = 30,
@@ -150,7 +154,7 @@ class LlamaCppBackend:
 
     def start_download(
         self,
-        base_url: str,
+        base_url: str | list[str] | tuple[str, ...],
         tag: str,
         chunk_size: int = 1024 * 1024,
         timeout: int = 30,
@@ -179,19 +183,25 @@ class LlamaCppBackend:
 
         staging_dir = dest_dir.parent / f".llamacpp-{uuid.uuid4().hex}"
         filename = self._build_filename(tag)
-        download_url = f"{base_url}/{tag}/{filename}"
+        base_urls = self._normalize_base_urls(base_url)
+        download_urls = [
+            f"{candidate.rstrip('/')}/{tag}/{filename}"
+            for candidate in base_urls
+        ]
         spec = ProcessDownloadTaskSpec(
             process_name=f"copaw-llamacpp-download-{staging_dir.name}",
-            command=["copaw-llamacpp-download", download_url],
+            command=["copaw-llamacpp-download", download_urls[0]],
             task=ProcessDownloadTask(
                 target=type(self)._download_worker,
                 payload={
-                    "url": download_url,
+                    "urls": download_urls,
                     "staging_dir": str(staging_dir),
                     "file_name": filename,
                     "chunk_size": chunk_size,
                     "timeout": timeout,
                     "headers": self._download_headers,
+                    "trust_env": self._download_trust_env,
+                    "proxy_envs": self._active_proxy_envs(),
                 },
                 finalize_result=lambda result: self._finalize_download_result(
                     result,
@@ -200,7 +210,7 @@ class LlamaCppBackend:
                 ),
                 cleanup=lambda: self._cleanup_download_path(staging_dir),
             ),
-            source=download_url,
+            source=download_urls[0],
             poll_interval=0.2,
         )
         self._download_controller.start(spec)
@@ -429,7 +439,11 @@ class LlamaCppBackend:
         if final_dir.exists():
             shutil.rmtree(final_dir)
         final_dir.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(staging_dir), str(final_dir))
+        final_dir.mkdir(parents=True, exist_ok=True)
+        self._merge_runtime_tree(
+            source_dir=staging_dir,
+            dest_dir=final_dir,
+        )
         return (
             DownloadTaskResult(
                 status=DownloadTaskStatus.COMPLETED,
@@ -441,80 +455,102 @@ class LlamaCppBackend:
     @staticmethod
     def _download_worker(payload: dict[str, Any], queue: Any) -> None:
         ensure_standard_streams()
-        url = payload["url"]
+        urls = list(payload["urls"])
         staging_dir = Path(payload["staging_dir"]).expanduser().resolve()
         file_name = payload["file_name"]
         chunk_size = int(payload["chunk_size"])
         timeout = int(payload["timeout"])
         headers = dict(payload["headers"])
+        trust_env = bool(payload.get("trust_env", False))
+        proxy_envs = dict(payload.get("proxy_envs", {}))
 
         staging_dir.mkdir(parents=True, exist_ok=True)
         temp_path = staging_dir / file_name
 
-        try:
-            with httpx.Client(
-                follow_redirects=True,
-                timeout=timeout,
-            ) as client:
-                with client.stream(
-                    "GET",
-                    url,
-                    headers=headers,
-                ) as response:
-                    response.raise_for_status()
-                    total_bytes = response.headers.get("Content-Length")
-                    total_bytes_int = (
-                        int(total_bytes)
-                        if total_bytes and total_bytes.isdigit()
-                        else None
-                    )
-                    downloaded = 0
-
-                    with open(temp_path, "wb") as file_obj:
-                        for chunk in response.iter_bytes(
-                            chunk_size=chunk_size,
-                        ):
-                            if not chunk:
-                                continue
-                            file_obj.write(chunk)
-                            downloaded += len(chunk)
-                            queue.put(
-                                DownloadProgressUpdate(
-                                    downloaded_bytes=downloaded,
-                                    total_bytes=total_bytes_int,
-                                    source=url,
-                                ).to_message(),
-                            )
-
-            LlamaCppBackend._extract_archive(
-                temp_path,
-                staging_dir,
-            )
-            temp_path.unlink(missing_ok=True)
-            queue.put(
-                DownloadTaskResult(
-                    status=DownloadTaskStatus.COMPLETED,
-                    local_path=str(staging_dir),
-                ).to_message(),
-            )
-        except Exception as exc:
+        errors: list[str] = []
+        for url in urls:
             LlamaCppBackend._cleanup_download_files(temp_path)
-            error_message = LlamaCppBackend._format_download_error(exc, url)
-            queue.put(
-                DownloadTaskResult(
-                    status=DownloadTaskStatus.FAILED,
-                    error=error_message,
-                ).to_message(),
-            )
-            logger.warning(
-                "llama.cpp download failed for %s: %s",
-                url,
-                error_message,
-            )
-            return
+            try:
+                with httpx.Client(
+                    follow_redirects=True,
+                    timeout=timeout,
+                    trust_env=trust_env,
+                ) as client:
+                    with client.stream(
+                        "GET",
+                        url,
+                        headers=headers,
+                    ) as response:
+                        response.raise_for_status()
+                        total_bytes = response.headers.get("Content-Length")
+                        total_bytes_int = (
+                            int(total_bytes)
+                            if total_bytes and total_bytes.isdigit()
+                            else None
+                        )
+                        downloaded = 0
+
+                        with open(temp_path, "wb") as file_obj:
+                            for chunk in response.iter_bytes(
+                                chunk_size=chunk_size,
+                            ):
+                                if not chunk:
+                                    continue
+                                file_obj.write(chunk)
+                                downloaded += len(chunk)
+                                queue.put(
+                                    DownloadProgressUpdate(
+                                        downloaded_bytes=downloaded,
+                                        total_bytes=total_bytes_int,
+                                        source=url,
+                                    ).to_message(),
+                                )
+
+                LlamaCppBackend._extract_archive(
+                    temp_path,
+                    staging_dir,
+                )
+                LlamaCppBackend._cleanup_download_files(temp_path)
+                queue.put(
+                    DownloadTaskResult(
+                        status=DownloadTaskStatus.COMPLETED,
+                        local_path=str(staging_dir),
+                    ).to_message(),
+                )
+                return
+            except Exception as exc:
+                error_message = LlamaCppBackend._format_download_error(
+                    exc,
+                    url,
+                    trust_env=trust_env,
+                    proxy_envs=proxy_envs,
+                )
+                errors.append(f"{url} -> {error_message}")
+                logger.warning(
+                    "llama.cpp download failed for %s: %s",
+                    url,
+                    error_message,
+                )
+
+        LlamaCppBackend._cleanup_download_files(temp_path)
+        queue.put(
+            DownloadTaskResult(
+                status=DownloadTaskStatus.FAILED,
+                error=LlamaCppBackend._format_aggregate_download_error(
+                    errors,
+                ),
+            ).to_message(),
+        )
+        return
 
     @staticmethod
-    def _format_download_error(exc: Exception, url: str) -> str:
+    def _format_download_error(
+        exc: Exception,
+        url: str,
+        *,
+        trust_env: bool,
+        proxy_envs: dict[str, str] | None = None,
+    ) -> str:
         if isinstance(exc, httpx.HTTPStatusError):
             status_code = exc.response.status_code
             if status_code == 404:
@@ -542,12 +578,28 @@ class LlamaCppBackend:
             )
 
         if isinstance(exc, httpx.RequestError):
-            return (
+            message = (
                 "Unable to connect to the llama.cpp download server. "
                 f"Request URL: {url}."
             )
+            if trust_env and proxy_envs:
+                proxy_keys = ", ".join(sorted(proxy_envs))
+                return (
+                    f"{message} Current proxy environment may be invalid "
+                    f"({proxy_keys}); disable proxy inheritance or set "
+                    "COPAW_LLAMA_CPP_DOWNLOAD_TRUST_ENV=false."
+                )
+            return message
 
         return f"llama.cpp download failed: {exc}"
+
+    @staticmethod
+    def _format_aggregate_download_error(errors: list[str]) -> str:
+        if not errors:
+            return "llama.cpp download failed for all configured sources."
+        return "llama.cpp download failed after trying all sources: " + " | ".join(
+            errors,
+        )
 
     @staticmethod
     def _find_free_port(host: str = "127.0.0.1") -> int:
@@ -680,12 +732,24 @@ class LlamaCppBackend:
 
         shutil.copy2(source, destination)
 
+    @classmethod
+    def _merge_runtime_tree(
+        cls,
+        *,
+        source_dir: Path,
+        dest_dir: Path,
+    ) -> None:
+        for item in source_dir.iterdir():
+            if cls._is_archive_file(item):
+                continue
+            cls._merge_path(item, dest_dir / item.name)
+
     @staticmethod
     def _cleanup_download_files(
         *paths: Path,
     ) -> None:
         for path in paths:
-            with suppress(FileNotFoundError):
+            with suppress(FileNotFoundError, PermissionError):
                 path.unlink(missing_ok=True)
 
     @staticmethod
@@ -695,7 +759,8 @@ class LlamaCppBackend:
         if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
             return
-        path.unlink(missing_ok=True)
+        with suppress(PermissionError, FileNotFoundError):
+            path.unlink(missing_ok=True)
 
     @property
     def _download_headers(self) -> dict[str, str]:
@@ -707,6 +772,28 @@ class LlamaCppBackend:
             ),
             "Accept": "*/*",
         }
+
+    @staticmethod
+    def _normalize_base_urls(
+        base_url: str | list[str] | tuple[str, ...],
+    ) -> list[str]:
+        if isinstance(base_url, str):
+            return [base_url]
+        return [candidate for candidate in base_url if candidate]
+
+    @staticmethod
+    def _active_proxy_envs() -> dict[str, str]:
+        proxy_envs: dict[str, str] = {}
+        for key in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"):
+            value = os.environ.get(key)
+            if value:
+                proxy_envs[key] = value
+        return proxy_envs
+
+    @staticmethod
+    def _is_archive_file(path: Path) -> bool:
+        suffixes = path.suffixes
+        return suffixes[-1:] == [".zip"] or suffixes[-2:] == [".tar", ".gz"]
 
     def _resolve_os_name(self) -> str:
         os_name = system_info.get_os_name()

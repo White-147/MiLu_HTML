@@ -204,6 +204,11 @@
     "emptyStateCreate": "Создать первый навык",
     "selectWorkspaceSkill": "Выберите навык рабочего пространства",
     "selectPoolItem": "Выберите элемент пула навыков",
+    "selectSkillsToBroadcast": "Выберите навыки для трансляции",
+    "notInstalled": "Не установлен",
+    "installSkill": "Установить",
+    "installSuccess": "Навык успешно установлен",
+    "installFailed": "Не удалось установить навык",
     "renameOptional": "Переименование (необязательно)",
     "renamePlaceholder": "Предложенное переименование появится здесь при конфликте",
     "downloadSkillPool": "Скачать пул навыков",
@@ -415,8 +420,20 @@
     "textTooltip": "Простая текстовая задача: здесь указывается фактический текст сообщения. Обязательно при типе задачи «text».",
     "requestInputTooltip": "Содержимое сообщения в формате JSON. Именно это агент получит и обработает. Обязательно при типе задачи «agent».",
     "requestInputExample": "Формат: [{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"Ваше сообщение\"}]}]",
+    "requestInputHint": "⚡ Поддерживает типы text / image_url / input_audio / file и их комбинации. Нажмите «Справка по типам» для выбора шаблона.",
+    "viewTypeReference": "Справка по типам",
+    "contentTypeReference": "Справочник типов содержимого запроса",
+    "typeDesc": "Сценарий использования",
+    "useThisTemplate": "Использовать этот шаблон",
+    "autoDetectContent": "Автоопределение содержимого",
     "requestSessionIdTooltip": "ID сессии для контекста запроса. Если не уверены, используйте 'default'.",
     "requestUserIdTooltip": "ID пользователя, который инициирует запрос. Для автоматических задач используйте 'system'.",
+    "newSession": "Новая сессия (автосоздание)",
+    "selectUserId": "Выберите ID пользователя",
+    "selectSessionId": "Выберите целевую сессию",
+    "taskTypeTextDesc": "Отправить фиксированное текстовое сообщение",
+    "taskTypeAgentDesc": "Отправить запрос агенту и получить ответ",
+    "pleaseSelectDays": "Выберите хотя бы один день",
     "dispatchChannelTooltip": "Целевой канал, куда будет отправлен ответ (например, 'console', 'discord', 'imessage').",
     "dispatchTargetUserIdTooltip": "ID пользователя, который получит ответ в целевом канале.",
     "dispatchTargetSessionIdTooltip": "ID сессии, куда будет доставлен ответ в целевом канале.",
@@ -426,7 +443,13 @@
     "misfireGraceSecondsTooltip": "Льготный период для пропущенных запусков. Если задача пропустила время запуска больше чем на это значение, она не будет выполнена.",
     "executeNowTitle": "Выполнить задачу сейчас",
     "executeNowContent": "Вы уверены, что хотите выполнить «{{name}}» прямо сейчас?",
-    "executeNowConfirm": "Выполнить сейчас"
+    "executeNowConfirm": "Выполнить сейчас",
+    "executeStarted": "Задача запущена",
+    "goToChatContent": "Задача cron запущена. Хотите перейти на страницу чата, чтобы увидеть результат?",
+    "goToChat": "Перейти в чат",
+    "stayHere": "Остаться здесь",
+    "disableFirst": "Отключите задачу перед удалением",
+    "disableFirstEdit": "Отключите задачу перед редактированием"
   },
   "channels": {
     "title": "Каналы",
@@ -579,7 +602,8 @@
     "date": "Дата",
     "refresh": "Обновить",
     "loadFailed": "Не удалось загрузить данные об использовании токенов",
-    "noData": "Нет данных об использовании токенов за выбранный период"
+    "noData": "Нет данных об использовании токенов за выбранный период",
+    "noModel": "Модель не подключена. Невозможно рассчитать расход токенов."
   },
   "modelSelector": {
     "selectModel": "Выбрать модель",
@@ -617,7 +641,7 @@
     "enterApiKey": "Введите API-ключ ({{prefix}}...)",
     "enterApiKeyOptional": "Введите API-ключ (необязательно)",
     "openAIEndpoint": "OpenAI endpoint, например https://api.openai.com/v1",
-    "openAICompatibleEndpoint": "OpenAI-совместимый endpoint, например https://api.example.com (добавляйте /v1 только если ваш провайдер этого требует)",
+    "openAICompatibleEndpoint": "OpenAI-совместимый endpoint, обычно заканчивается на /v1 (например https://api.example.com/v1)",
     "azureEndpointHint": "Azure OpenAI endpoint, например https://<resource>.openai.azure.com/openai/v1",
     "anthropicEndpointHint": "Anthropic endpoint, например https://api.anthropic.com",
     "ollamaEndpointHint": "Ollama endpoint, например http://localhost:11434",
@@ -666,7 +690,7 @@
     "providerNameLabel": "Отображаемое имя",
     "providerNamePlaceholder": "например: OpenAI, Google Gemini",
     "defaultBaseUrlLabel": "Базовый URL по умолчанию",
-    "defaultBaseUrlPlaceholder": "например: https://api.example.com",
+    "defaultBaseUrlPlaceholder": "например: https://api.example.com/v1",
     "apiKeyPrefixLabel": "Префикс API-ключа (необязательно)",
     "apiKeyPrefixPlaceholder": "например: sk-",
     "providerCreated": "Провайдер «{{name}}» создан",
@@ -1278,8 +1302,11 @@
     "providerDescription": "Выберите провайдера для транскрипции аудио через Whisper API. Отображаются только провайдеры с совместимым эндпоинтом.",
     "providerPlaceholder": "Выберите провайдера...",
     "noProvidersWarning": "Не найдено провайдеров для транскрипции. Настройте провайдер OpenAI для включения голосовой транскрипции.",
+    "noProviderCannotSave": "Провайдер транскрипции недоступен. Сначала настройте OpenAI-совместимый провайдер в настройках моделей.",
+    "selectProviderFirst": "Сначала выберите провайдер транскрипции.",
+    "localWhisperNotReady": "Локальный Whisper не готов. Установите ffmpeg и openai-whisper.",
     "transcriptionInfoTitle": "Как работает транскрипция",
     "transcriptionInfoDesc": "Whisper API транскрипция использует OpenAI-совместимый эндпоинт /v1/audio/transcriptions. Необходим провайдер с поддержкой Whisper (например, OpenAI). Выберите конкретного провайдера выше для включения транскрипции.",
-    "transcriptionInfoDescLocal": "Локальная Whisper транскрипция запускает библиотеку openai-whisper непосредственно на вашем устройстве. Требуются ffmpeg (для декодирования аудио) и пакет openai-whisper. API-ключ и подключение к интернету не нужны. Установка: uv pip install 'copaw[whisper]'."
+    "transcriptionInfoDescLocal": "Локальная Whisper транскрипция запускает библиотеку openai-whisper непосредственно на вашем устройстве. Требуются ffmpeg (для декодирования аудио) и пакет openai-whisper. API-ключ и подключение к интернету не нужны. Установка: uv pip install 'milu[whisper]'."
   }
 }

@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 
 import pytest
 
+import copaw.local_models.model_manager as model_manager_module
 from copaw.local_models.download_manager import (
     DownloadTaskResult,
     DownloadTaskStatus,
@@ -366,3 +368,80 @@ def test_download_worker_sanitizes_standard_streams(
     payload = queue_messages[0]["payload"]
     assert isinstance(payload, dict)
     assert payload["status"] == "completed"
+
+
+def test_resolve_remote_repo_id_maps_huggingface_namespace() -> None:
+    downloader = ModelManager()
+
+    assert downloader._resolve_remote_repo_id(
+        "AgentScope/CoPaw-Flash-2B-Q4_K_M",
+        DownloadSource.HUGGINGFACE,
+    ) == "agentscope-ai/CoPaw-Flash-2B-Q4_K_M"
+    assert downloader._resolve_remote_repo_id(
+        "agentscope-ai/CoPaw-Flash-2B-Q4_K_M",
+        DownloadSource.MODELSCOPE,
+    ) == "AgentScope/CoPaw-Flash-2B-Q4_K_M"
+
+
+def test_huggingface_checks_ignore_proxy_env_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    downloader = ModelManager()
+    observed_proxy: str | None = None
+
+    class _FakeHfApi:
+        def list_repo_files(self, repo_id: str) -> list[str]:
+            del repo_id
+            nonlocal observed_proxy
+            observed_proxy = os.environ.get("HTTP_PROXY")
+            return ["model.gguf"]
+
+    monkeypatch.setenv("HTTP_PROXY", "http://127.0.0.1:9")
+    monkeypatch.setattr(
+        model_manager_module,
+        "LOCAL_MODEL_DOWNLOAD_TRUST_ENV",
+        False,
+    )
+    monkeypatch.setattr(
+        "huggingface_hub.HfApi",
+        _FakeHfApi,
+    )
+
+    assert downloader._check_huggingface_gguf_exists("AgentScope/demo") == (
+        True,
+        "",
+    )
+    assert observed_proxy is None
+    assert os.environ.get("HTTP_PROXY") == "http://127.0.0.1:9"
+
+
+def test_huggingface_download_can_opt_in_to_proxy_env(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    observed_proxy: str | None = None
+
+    def _fake_snapshot_download(*, repo_id: str, local_dir: str) -> str:
+        del repo_id, local_dir
+        nonlocal observed_proxy
+        observed_proxy = os.environ.get("HTTP_PROXY")
+        return str(tmp_path / "downloaded")
+
+    monkeypatch.setenv("HTTP_PROXY", "http://127.0.0.1:9")
+    monkeypatch.setattr(
+        model_manager_module,
+        "LOCAL_MODEL_DOWNLOAD_TRUST_ENV",
+        True,
+    )
+    monkeypatch.setattr(
+        "huggingface_hub.snapshot_download",
+        _fake_snapshot_download,
+    )
+
+    result = ModelManager._download_from_huggingface(
+        "AgentScope/demo",
+        tmp_path,
+    )
+
+    assert result == str(tmp_path / "downloaded")
+    assert observed_proxy == "http://127.0.0.1:9"

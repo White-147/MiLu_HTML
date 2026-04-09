@@ -18,9 +18,10 @@ class CronExecutor:
     async def execute(self, job: CronJobSpec) -> None:
         """Execute one job once.
 
-        - task_type text: send fixed text to channel
-        - task_type agent: ask agent with prompt, send reply to channel (
-            stream_query + send_event)
+        Both text and agent modes route through stream_query so the
+        user message and assistant reply appear in the chat session.
+        For text mode, the job text is wrapped as a user message in
+        the AgentRequest-compatible format.
         """
         target_user_id = job.dispatch.target.user_id
         target_session_id = job.dispatch.target.session_id
@@ -35,30 +36,34 @@ class CronExecutor:
             target_session_id[:40] if target_session_id else "",
         )
 
+        # Build the request dict for stream_query.
+        # Both text and agent modes go through the agent pipeline so
+        # messages are properly persisted in the chat session.
         if job.task_type == "text" and job.text:
+            req: Dict[str, Any] = {
+                "input": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": job.text.strip()},
+                        ],
+                    },
+                ],
+            }
             logger.info(
-                "cron send_text: job_id=%s channel=%s len=%s",
+                "cron text→agent: job_id=%s channel=%s",
                 job.id,
                 job.dispatch.channel,
-                len(job.text or ""),
             )
-            await self._channel_manager.send_text(
-                channel=job.dispatch.channel,
-                user_id=target_user_id,
-                session_id=target_session_id,
-                text=job.text.strip(),
-                meta=dispatch_meta,
+        else:
+            assert job.request is not None
+            req = job.request.model_dump(mode="json")
+            logger.info(
+                "cron agent: job_id=%s channel=%s",
+                job.id,
+                job.dispatch.channel,
             )
-            return
 
-        # agent: run request as the dispatch target user so context matches
-        logger.info(
-            "cron agent: job_id=%s channel=%s stream_query then send_event",
-            job.id,
-            job.dispatch.channel,
-        )
-        assert job.request is not None
-        req: Dict[str, Any] = job.request.model_dump(mode="json")
         req["user_id"] = target_user_id or "cron"
         req["session_id"] = target_session_id or f"cron:{job.id}"
 

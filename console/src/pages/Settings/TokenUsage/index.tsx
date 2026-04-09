@@ -24,6 +24,7 @@ function TokenUsagePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<TokenUsageSummary | null>(null);
+  const [hasActiveModel, setHasActiveModel] = useState<boolean | null>(null);
   const [startDate, setStartDate] = useState<Dayjs>(
     dayjs().subtract(30, "day"),
   );
@@ -51,6 +52,10 @@ function TokenUsagePage() {
 
   useEffect(() => {
     fetchData();
+    api
+      .getActiveModels({ scope: "global" })
+      .then((info) => setHasActiveModel(!!info?.active_llm))
+      .catch(() => setHasActiveModel(false));
   }, []);
 
   const handleDateChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
@@ -210,6 +215,8 @@ function TokenUsagePage() {
                   </Card>
                 )}
               </>
+            ) : hasActiveModel === false ? (
+              <EmptyState message={t("tokenUsage.noModel")} icon="🔌" />
             ) : (
               <EmptyState message={t("tokenUsage.noData")} />
             )}

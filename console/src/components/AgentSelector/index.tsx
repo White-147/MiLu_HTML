@@ -6,6 +6,7 @@ import { useAgentStore } from "../../stores/agentStore";
 import { agentsApi } from "../../api/modules/agents";
 import { useTranslation } from "react-i18next";
 import { getAgentDisplayName } from "../../utils/agentDisplayName";
+import { normalizeMiLuBranding } from "../../utils/brandText";
 import { useNavigate } from "react-router-dom";
 import { useAppMessage } from "../../hooks/useAppMessage";
 import styles from "./index.module.less";
@@ -181,12 +182,14 @@ export default function AgentSelector({
                   </div>
                   {agent.description && (
                     <div className={styles.agentOptionDescription}>
-                      {agent.description}
+                      {normalizeMiLuBranding(agent.description)}
                     </div>
                   )}
                 </div>
               </div>
-              <div className={styles.agentOptionId}>ID: {agent.id}</div>
+              <div className={styles.agentOptionId}>
+                ID: {normalizeMiLuBranding(agent.id)}
+              </div>
             </div>
           </Select.Option>
         ))}

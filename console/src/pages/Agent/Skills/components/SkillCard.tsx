@@ -10,6 +10,7 @@ import {
   FilePptFilled,
   FileImageFilled,
   CodeFilled,
+  DownloadOutlined,
   EyeOutlined,
   EyeInvisibleOutlined,
 } from "@ant-design/icons";
@@ -23,12 +24,14 @@ interface SkillCardProps {
   skill: SkillSpec;
   isHover: boolean;
   selected?: boolean;
+  poolOnly?: boolean;
   onSelect?: (e: React.MouseEvent) => void;
   onClick: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onToggleEnabled: (e: React.MouseEvent) => void;
   onDelete?: (e?: React.MouseEvent) => void;
+  onInstall?: () => void;
 }
 
 const extractSkillEmoji = (content?: string) => {
@@ -135,12 +138,14 @@ export const SkillCard = React.memo(function SkillCard({
   skill,
   isHover,
   selected,
+  poolOnly,
   onSelect,
   onClick,
   onMouseEnter,
   onMouseLeave,
   onToggleEnabled,
   onDelete,
+  onInstall,
 }: SkillCardProps) {
   const { t } = useTranslation();
   const displaySource = getSkillDisplaySource(skill.source);
@@ -162,7 +167,13 @@ export const SkillCard = React.memo(function SkillCard({
     onSelect?.(e);
   };
 
+  const handleInstallClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onInstall?.();
+  };
+
   const handleCardClick = (e: React.MouseEvent) => {
+    if (poolOnly) return;
     if (batchMode && onSelect) {
       onSelect(e);
     } else {
@@ -172,17 +183,20 @@ export const SkillCard = React.memo(function SkillCard({
 
   return (
     <Card
-      hoverable
+      hoverable={!poolOnly}
       onClick={handleCardClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={`${styles.skillCard} ${
-        skill.enabled ? styles.enabledCard : ""
+        poolOnly
+          ? styles.poolOnlyCard
+          : skill.enabled
+          ? styles.enabledCard
+          : ""
       } ${isHover ? styles.hover : styles.normal} ${
         selected ? styles.selectedCard : ""
       }`}
     >
-      {/* Header: Icon + Title + Badge + Status + Select */}
       <div className={styles.cardHeader}>
         <div className={styles.leftSection}>
           <span className={styles.fileIcon}>
@@ -190,54 +204,71 @@ export const SkillCard = React.memo(function SkillCard({
           </span>
           <div className={styles.titleRow}>
             <h3 className={styles.skillTitle}>{skill.name}</h3>
-            <span className={styles.typeBadge}>
-              {isBuiltin ? t("skills.builtin") : t("skills.custom")}
-            </span>
-          </div>
-          {/* Meta Info: Channels, Pool Sync - moved here */}
-          <div className={styles.metaContainer}>
-            <div className={styles.metaItem}>
-              <span className={styles.metaLabel}>{t("skills.channels")}</span>
-              <span className={styles.channelValue}>
-                {(skill.channels || ["all"])
-                  .map((ch) => (ch === "all" ? t("skills.allChannels") : ch))
-                  .join(", ")}
+            {poolOnly ? (
+              <span className={styles.notInstalledBadge}>
+                {t("skills.notInstalled")}
               </span>
-            </div>
-            {skill.last_updated && (
-              <div className={styles.metaItem}>
-                <span className={styles.metaLabel}>
-                  {t("skills.lastUpdated")}
-                </span>
-                <span className={styles.metaValue}>
-                  {dayjs(skill.last_updated).fromNow()}
-                </span>
-              </div>
+            ) : (
+              <span className={styles.typeBadge}>
+                {isBuiltin ? t("skills.builtin") : t("skills.custom")}
+              </span>
             )}
           </div>
+          {!poolOnly && (
+            <div className={styles.metaContainer}>
+              <div className={styles.metaItem}>
+                <span className={styles.metaLabel}>
+                  {t("skills.channels")}
+                </span>
+                <span className={styles.channelValue}>
+                  {(skill.channels || ["all"])
+                    .map((ch) => (ch === "all" ? t("skills.allChannels") : ch))
+                    .join(", ")}
+                </span>
+              </div>
+              {skill.last_updated && (
+                <div className={styles.metaItem}>
+                  <span className={styles.metaLabel}>
+                    {t("skills.lastUpdated")}
+                  </span>
+                  <span className={styles.metaValue}>
+                    {dayjs(skill.last_updated).fromNow()}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className={styles.statusWithSelect}>
-          <div className={styles.statusContainer}>
-            <span
-              className={`${styles.statusDot} ${
-                skill.enabled ? styles.enabled : styles.disabled
-              }`}
-            />
-            <span
-              className={`${styles.statusText} ${
-                skill.enabled ? styles.enabled : styles.disabled
-              }`}
-            >
-              {skill.enabled ? t("common.enabled") : t("common.disabled")}
-            </span>
-          </div>
+          {poolOnly ? (
+            <div className={styles.statusContainer}>
+              <span className={`${styles.statusDot} ${styles.disabled}`} />
+              <span className={`${styles.statusText} ${styles.disabled}`}>
+                {t("skills.notInstalled")}
+              </span>
+            </div>
+          ) : (
+            <div className={styles.statusContainer}>
+              <span
+                className={`${styles.statusDot} ${
+                  skill.enabled ? styles.enabled : styles.disabled
+                }`}
+              />
+              <span
+                className={`${styles.statusText} ${
+                  skill.enabled ? styles.enabled : styles.disabled
+                }`}
+              >
+                {skill.enabled ? t("common.enabled") : t("common.disabled")}
+              </span>
+            </div>
+          )}
           {batchMode && (
             <Checkbox checked={selected} onClick={handleSelectClick} />
           )}
         </div>
       </div>
 
-      {/* Description Section */}
       <div className={styles.descriptionContainer}>
         <p className={styles.descriptionLabel}>
           {t("skills.skillDescription")}
@@ -245,25 +276,52 @@ export const SkillCard = React.memo(function SkillCard({
         <p className={styles.descriptionText}>{skill.description || "-"}</p>
       </div>
 
-      {/* Footer with buttons - always show, disabled in batch mode */}
       <div className={styles.cardFooter}>
-        <Button
-          className={styles.actionButton}
-          onClick={handleToggleClick}
-          icon={skill.enabled ? <EyeInvisibleOutlined /> : <EyeOutlined />}
-          disabled={batchMode}
-        >
-          {skill.enabled ? t("common.disable") : t("common.enable")}
-        </Button>
-        {onDelete && (
-          <Button
-            danger
-            className={styles.deleteButton}
-            onClick={handleDeleteClick}
-            disabled={batchMode}
-          >
-            {t("common.delete")}
-          </Button>
+        {poolOnly ? (
+          <>
+            {onInstall && (
+              <Button
+                type="primary"
+                className={styles.actionButton}
+                onClick={handleInstallClick}
+                icon={<DownloadOutlined />}
+              >
+                {t("skills.installSkill")}
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                danger
+                className={styles.deleteButton}
+                onClick={handleDeleteClick}
+              >
+                {t("common.delete")}
+              </Button>
+            )}
+          </>
+        ) : (
+          <>
+            <Button
+              className={styles.actionButton}
+              onClick={handleToggleClick}
+              icon={
+                skill.enabled ? <EyeInvisibleOutlined /> : <EyeOutlined />
+              }
+              disabled={batchMode}
+            >
+              {skill.enabled ? t("common.disable") : t("common.enable")}
+            </Button>
+            {onDelete && (
+              <Button
+                danger
+                className={styles.deleteButton}
+                onClick={handleDeleteClick}
+                disabled={batchMode}
+              >
+                {t("common.delete")}
+              </Button>
+            )}
+          </>
         )}
       </div>
     </Card>

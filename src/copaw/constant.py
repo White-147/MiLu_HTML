@@ -168,6 +168,21 @@ MODEL_PROVIDER_CHECK_TIMEOUT = EnvVarLoader.get_float(
     allow_inf=False,
 )
 
+# Whether llama.cpp runtime downloads should inherit system proxy variables.
+# Default to False so broken desktop proxy settings do not block local setup.
+LLAMA_CPP_DOWNLOAD_TRUST_ENV = EnvVarLoader.get_bool(
+    "COPAW_LLAMA_CPP_DOWNLOAD_TRUST_ENV",
+    False,
+)
+
+# Whether local model metadata checks and downloads should inherit system
+# proxy variables. Default to False so broken desktop proxy settings do not
+# block built-in GGUF model downloads.
+LOCAL_MODEL_DOWNLOAD_TRUST_ENV = EnvVarLoader.get_bool(
+    "COPAW_LOCAL_MODEL_DOWNLOAD_TRUST_ENV",
+    False,
+)
+
 # Playwright: use system Chromium when set (e.g. in Docker).
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH_ENV = "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH"
 

@@ -212,6 +212,11 @@
     "uploadToPool": "同步到技能池",
     "selectWorkspaceSkill": "选择工作区技能",
     "selectPoolItem": "选择技能池项目",
+    "selectSkillsToBroadcast": "选择要广播的技能",
+    "notInstalled": "未安装",
+    "installSkill": "安装",
+    "installSuccess": "技能安装成功",
+    "installFailed": "技能安装失败",
     "renameOptional": "重命名（可选）",
     "renamePlaceholder": "冲突时建议的重命名将显示在此",
     "selectAll": "全选",
@@ -432,8 +437,20 @@
     "textTooltip": "简单消息任务：此处为实际的消息正文，任务类型为'text'时必填。",
     "requestInputTooltip": "JSON 格式的消息内容。这是智能体将接收和处理的内容，任务类型为'agent'时必填。",
     "requestInputExample": "格式：[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"您的消息内容\"}]}]",
+    "requestInputHint": "⚡ 支持 text / image_url / input_audio / file 等类型，可组合使用。点击 \"查看类型参考\" 选择模板。",
+    "viewTypeReference": "查看类型参考",
+    "contentTypeReference": "请求内容类型参考",
+    "typeDesc": "适用场景",
+    "useThisTemplate": "使用此模板",
+    "autoDetectContent": "自动识别消息内容",
     "requestSessionIdTooltip": "请求上下文的会话ID。不确定时使用 'default'。",
     "requestUserIdTooltip": "发起请求的用户ID。自动化任务使用 'system'。",
+    "newSession": "新建会话（自动创建）",
+    "selectUserId": "选择用户 ID",
+    "selectSessionId": "选择目标会话",
+    "taskTypeTextDesc": "发送固定文本消息",
+    "taskTypeAgentDesc": "向智能体发送请求并获取回复",
+    "pleaseSelectDays": "请选择至少一天",
     "dispatchChannelTooltip": "响应将发送到的目标频道（例如：'console'、'discord'、'imessage'）。",
     "dispatchTargetUserIdTooltip": "在目标频道中接收响应的用户ID。",
     "dispatchTargetSessionIdTooltip": "在目标频道中传递响应的会话ID。",
@@ -443,7 +460,13 @@
     "misfireGraceSecondsTooltip": "错过执行的宽限期。如果任务错过计划时间超过此时长，将不会执行。",
     "executeNowTitle": "立即执行任务",
     "executeNowContent": "确定要立即执行任务 \"{{name}}\" 吗？",
-    "executeNowConfirm": "立即执行"
+    "executeNowConfirm": "立即执行",
+    "executeStarted": "任务已启动",
+    "goToChatContent": "定时任务已开始执行，是否跳转到聊天页面查看结果？",
+    "goToChat": "前往聊天",
+    "stayHere": "留在此页",
+    "disableFirst": "请先禁用任务再删除",
+    "disableFirstEdit": "请先禁用任务再编辑"
   },
   "channels": {
     "title": "频道",
@@ -608,7 +631,8 @@
     "date": "日期",
     "refresh": "刷新",
     "loadFailed": "加载 Token 消耗数据失败",
-    "noData": "所选时间段内暂无 Token 消耗数据"
+    "noData": "所选时间段内暂无 Token 消耗数据",
+    "noModel": "未接入模型，无法计算 Token 消耗"
   },
   "modelSelector": {
     "selectModel": "选择模型",
@@ -646,7 +670,7 @@
     "enterApiKey": "输入 API 密钥 ({{prefix}}...)",
     "enterApiKeyOptional": "输入 API 密钥（可选）",
     "openAIEndpoint": "OpenAI 端点，例如 https://api.openai.com/v1",
-    "openAICompatibleEndpoint": "OpenAI 兼容端点，例如 https://api.example.com（仅在你的服务要求时再追加 /v1）",
+    "openAICompatibleEndpoint": "OpenAI 兼容端点，通常需要以 /v1 结尾（例如 https://api.example.com/v1）",
     "azureEndpointHint": "Azure OpenAI 端点，例如 https://<resource>.openai.azure.com/openai/v1",
     "anthropicEndpointHint": "Anthropic 端点，例如 https://api.anthropic.com",
     "ollamaEndpointHint": "Ollama 端点，例如 http://localhost:11434",
@@ -695,7 +719,7 @@
     "providerNameLabel": "显示名称",
     "providerNamePlaceholder": "例如 OpenAI, Google Gemini",
     "defaultBaseUrlLabel": "默认 Base URL",
-    "defaultBaseUrlPlaceholder": "例如 https://api.example.com",
+    "defaultBaseUrlPlaceholder": "例如 https://api.example.com/v1",
     "apiKeyPrefixLabel": "API Key 前缀（可选）",
     "apiKeyPrefixPlaceholder": "例如 sk-",
     "providerCreated": "提供商 \"{{name}}\" 已创建",
@@ -1310,8 +1334,11 @@
     "providerDescription": "选择用于 Whisper API 音频转写的提供商。仅显示支持 Whisper 端点的提供商。",
     "providerPlaceholder": "选择提供商...",
     "noProvidersWarning": "未找到支持转写的提供商。请配置一个 OpenAI 提供商以启用语音转写。",
+    "noProviderCannotSave": "当前未配置可用的转写提供商，无法保存。请先在模型设置中添加 OpenAI 兼容的提供商。",
+    "selectProviderFirst": "请先选择一个转写提供商。",
+    "localWhisperNotReady": "本地 Whisper 环境尚未就绪，请先安装 ffmpeg 和 openai-whisper。",
     "transcriptionInfoTitle": "转写工作原理",
     "transcriptionInfoDesc": "Whisper API 转写使用 OpenAI 兼容的 /v1/audio/transcriptions 端点。需要配置一个支持 Whisper 端点的提供商（如 OpenAI）。请在上方选择具体的提供商以启用转写。",
-    "transcriptionInfoDescLocal": "本地 Whisper 转写直接在您的设备上运行 openai-whisper 库。需要同时安装 ffmpeg（用于音频解码）和 openai-whisper Python 包。无需 API Key 或网络连接。安装命令：uv pip install 'copaw[whisper]'。"
+    "transcriptionInfoDescLocal": "本地 Whisper 转写直接在您的设备上运行 openai-whisper 库。需要同时安装 ffmpeg（用于音频解码）和 openai-whisper Python 包。无需 API Key 或网络连接。安装命令：uv pip install 'milu[whisper]'。"
   }
 }

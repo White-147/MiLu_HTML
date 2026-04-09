@@ -36,13 +36,14 @@ export const LocalModelRow = memo(function LocalModelRow({
   const { t } = useTranslation();
   const isRunning = currentRunningModelName === model.id;
   const isStarting = startingModelName === model.id;
+  const displayModelId = model.id.split("CoPaw").join("MiLu");
 
   return (
     <div className={styles.modelListItem}>
       <div className={styles.modelListItemInfo}>
         <span className={styles.modelListItemName}>{model.name}</span>
         <span className={styles.modelListItemId}>
-          {model.id} · {formatFileSize(model.size_bytes)}
+          {displayModelId} · {formatFileSize(model.size_bytes)}
         </span>
       </div>
       <div className={styles.modelListItemActions}>

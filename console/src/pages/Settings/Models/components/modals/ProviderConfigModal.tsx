@@ -357,7 +357,7 @@ export function ProviderConfigModal({
     if (provider.is_custom && effectiveChatModel === "AnthropicChatModel") {
       return "https://api.anthropic.com";
     }
-    return "https://api.example.com";
+    return "https://api.example.com/v1";
   }, [canEditBaseUrl, provider.id, provider.is_custom, effectiveChatModel]);
 
   // Sync form when modal opens or provider data changes

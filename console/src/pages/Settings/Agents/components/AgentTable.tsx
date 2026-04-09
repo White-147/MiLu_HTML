@@ -18,6 +18,7 @@ import { EyeOff, Eye } from "lucide-react";
 import type { AgentSummary } from "../../../../api/types/agents";
 import { useTheme } from "../../../../contexts/ThemeContext";
 import { getAgentDisplayName } from "../../../../utils/agentDisplayName";
+import { normalizeMiLuBranding } from "../../../../utils/brandText";
 import { SortableAgentRow, DragHandle } from "./SortableAgentRow";
 import styles from "../index.module.less";
 
@@ -105,18 +106,21 @@ export function AgentTable({
       title: t("agent.id"),
       dataIndex: "id",
       key: "id",
+      render: (value: string) => normalizeMiLuBranding(value),
     },
     {
       title: t("agent.description"),
       dataIndex: "description",
       key: "description",
       ellipsis: true,
+      render: (value?: string) => normalizeMiLuBranding(value),
     },
     {
       title: t("agent.workspace"),
       dataIndex: "workspace_dir",
       key: "workspace_dir",
       ellipsis: true,
+      render: (value?: string) => normalizeMiLuBranding(value),
     },
     {
       title: t("common.actions"),

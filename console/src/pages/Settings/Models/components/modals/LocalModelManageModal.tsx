@@ -22,6 +22,7 @@ import {
   isDownloadActive,
 } from "./local-models/shared";
 import { MILU_BRAND } from "@/constants/brandColors";
+import { normalizeMiLuBranding } from "../../../../../utils/brandText";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -119,7 +120,8 @@ export function LocalModelManageModal({
     if (!modelId) {
       return null;
     }
-    return localModels.find((model) => model.id === modelId)?.name ?? modelId;
+    const matchedName = localModels.find((model) => model.id === modelId)?.name;
+    return normalizeMiLuBranding(matchedName ?? modelId) ?? null;
   };
 
   const stopPolling = useCallback(() => {

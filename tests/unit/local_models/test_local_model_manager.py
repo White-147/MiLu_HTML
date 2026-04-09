@@ -34,7 +34,11 @@ class _FakeLlamaCppBackend:
             "pid": 123 if self.server_running else None,
         }
 
-    def download(self, base_url: str, tag: str) -> None:
+    def download(
+        self,
+        base_url: str | list[str] | tuple[str, ...],
+        tag: str,
+    ) -> None:
         self.calls.append(("download", (base_url, tag)))
 
     def get_download_progress(self) -> dict[str, object]:
@@ -130,7 +134,7 @@ async def test_local_model_manager_forwards_sync_calls() -> None:
         (
             "download",
             (
-                LocalModelManager.DEFAULT_LLAMA_CPP_BASE_URL,
+                list(LocalModelManager.DEFAULT_LLAMA_CPP_BASE_URLS),
                 LocalModelManager.DEFAULT_LLAMA_CPP_RELEASE_TAG,
             ),
         ),
@@ -187,7 +191,7 @@ async def test_start_llamacpp_download_stops_running_server_first() -> None:
         (
             "download",
             (
-                LocalModelManager.DEFAULT_LLAMA_CPP_BASE_URL,
+                list(LocalModelManager.DEFAULT_LLAMA_CPP_BASE_URLS),
                 LocalModelManager.DEFAULT_LLAMA_CPP_RELEASE_TAG,
             ),
         ),
