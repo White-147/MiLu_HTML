@@ -820,6 +820,7 @@
     "localModelPathMissing": "该已下载模型缺少本地路径信息。",
     "localModelsSectionTitle": "本地模型",
     "localModelsSectionDescription": "下载后即可启动；当前只允许一个模型下载任务和一个本地服务实例。",
+    "localPerformanceHint": "本地模型响应速度取决于您的硬件配置。小参数模型（如 2B）可能会在回复中暴露内部推理过程，建议在硬件允许的情况下选择更大参数的模型以获得更好的体验。",
     "localModelsLockedHint": "请先安装 llama.cpp",
     "localAlternativeRuntimeHint": "请尝试使用 Ollama 或 LM Studio",
     "localModelsCount": "已下载 {{downloaded}} / {{total}}",

@@ -162,8 +162,11 @@ function ContentTypeModal({
       onCancel={onClose}
       footer={null}
       width={620}
+      wrapClassName="milu-cron-content-type-modal"
     >
-      <Tabs items={tabs} />
+      <div className={styles.contentTypeModalBody}>
+        <Tabs items={tabs} />
+      </div>
     </Modal>
   );
 }

@@ -142,8 +142,6 @@ function CronJobsPage() {
         await executeNow(job.id);
         const targetSessionId = job.dispatch?.target?.session_id;
 
-        // Pre-cache user text so the chat page can show it immediately
-        // while the model is still generating (mirrors the chat UI behaviour).
         if (targetSessionId) {
           const userText = extractUserTextFromJob(job);
           if (userText) {
@@ -154,21 +152,10 @@ function CronJobsPage() {
               );
             } catch { /* quota exceeded */ }
           }
+          navigate(`/chat/${encodeURIComponent(targetSessionId)}`);
+        } else {
+          navigate("/chat");
         }
-
-        Modal.confirm({
-          title: t("cronJobs.executeStarted"),
-          content: t("cronJobs.goToChatContent"),
-          okText: t("cronJobs.goToChat"),
-          cancelText: t("cronJobs.stayHere"),
-          onOk: () => {
-            if (targetSessionId) {
-              navigate(`/chat/${encodeURIComponent(targetSessionId)}`);
-            } else {
-              navigate("/chat");
-            }
-          },
-        });
       },
     });
   };

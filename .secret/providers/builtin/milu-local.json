@@ -1,0 +1,27 @@
+{
+  "id": "milu-local",
+  "name": "MiLu Local",
+  "base_url": "http://127.0.0.1:58029/v1",
+  "api_key": "",
+  "chat_model": "OpenAIChatModel",
+  "models": [],
+  "extra_models": [
+    {
+      "id": "AgentScope/CoPaw-Flash-2B-Q8_0",
+      "name": "AgentScope/CoPaw-Flash-2B-Q8_0",
+      "supports_multimodal": null,
+      "supports_image": null,
+      "supports_video": null,
+      "probe_source": null,
+      "generate_kwargs": {}
+    }
+  ],
+  "api_key_prefix": "",
+  "is_local": true,
+  "freeze_url": false,
+  "require_api_key": false,
+  "is_custom": false,
+  "support_model_discovery": false,
+  "support_connection_check": true,
+  "generate_kwargs": {}
+}

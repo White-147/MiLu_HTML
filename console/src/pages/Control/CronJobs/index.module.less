@@ -142,6 +142,31 @@
   color: #1890ff;
 }
 
+/* Content type reference modal (antd Tabs + Typography); scoped for theme overrides */
+/* 根 ConfigProvider prefixCls=milu → 优先 milu-*，ant-* 仅作后备 */
+.contentTypeModalBody {
+  :global {
+    .milu-tabs-tab:not(.milu-tabs-tab-active),
+    .milu-tabs-tab:not(.milu-tabs-tab-active) .milu-tabs-tab-btn,
+    .ant-tabs-tab:not(.ant-tabs-tab-active),
+    .ant-tabs-tab:not(.ant-tabs-tab-active) .ant-tabs-tab-btn {
+      color: rgba(0, 0, 0, 0.78);
+    }
+
+    .milu-tabs-tab:not(.milu-tabs-tab-active):hover,
+    .milu-tabs-tab:not(.milu-tabs-tab-active):hover .milu-tabs-tab-btn,
+    .ant-tabs-tab:not(.ant-tabs-tab-active):hover,
+    .ant-tabs-tab:not(.ant-tabs-tab-active):hover .ant-tabs-tab-btn {
+      color: rgba(0, 0, 0, 0.88);
+    }
+
+    .milu-typography-secondary,
+    .ant-typography-secondary {
+      color: rgba(0, 0, 0, 0.72) !important;
+    }
+  }
+}
+
 /* Code preview block for type reference modal */
 .codePreBlock {
   background: #f5f5f5;
@@ -221,6 +246,37 @@
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.85);
     border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Content type reference modal: inactive tabs + secondary hint text */
+  .contentTypeModalBody {
+    :global {
+      .milu-tabs-tab:not(.milu-tabs-tab-active),
+      .milu-tabs-tab:not(.milu-tabs-tab-active) .milu-tabs-tab-btn,
+      .ant-tabs-tab:not(.ant-tabs-tab-active),
+      .ant-tabs-tab:not(.ant-tabs-tab-active) .ant-tabs-tab-btn {
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .milu-tabs-tab-active,
+      .milu-tabs-tab-active .milu-tabs-tab-btn,
+      .ant-tabs-tab-active,
+      .ant-tabs-tab-active .ant-tabs-tab-btn {
+        color: rgba(255, 255, 255, 0.95);
+      }
+
+      .milu-tabs-tab:not(.milu-tabs-tab-active):hover,
+      .milu-tabs-tab:not(.milu-tabs-tab-active):hover .milu-tabs-tab-btn,
+      .ant-tabs-tab:not(.ant-tabs-tab-active):hover,
+      .ant-tabs-tab:not(.ant-tabs-tab-active):hover .ant-tabs-tab-btn {
+        color: rgba(255, 255, 255, 0.92);
+      }
+
+      .milu-typography-secondary,
+      .ant-typography-secondary {
+        color: rgba(255, 255, 255, 0.78) !important;
+      }
+    }
   }
 
 }

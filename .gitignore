@@ -107,3 +107,16 @@ src/.hypothesis/
 
 # Worktrees
 .worktrees/
+
+# Local models (large binary files)
+local_models/
+
+# Browser user data (runtime cache)
+workspaces/*/browser/user_data/
+
+# Provider credentials (private)
+.secret/providers/active_model.json
+.secret/providers/custom/
+
+# Oversized docx
+website/exported-docs/**/*.docx

@@ -1,7 +1,7 @@
 {
   "id": "default",
-  "name": "Default",
-  "description": "default agent",
+  "name": "Default Agent",
+  "description": "Default MiLu agent (migrated from legacy config)",
   "workspace_dir": "D:\\code\\MiLu\\workspaces\\default",
   "channels": {
     "imessage": {
@@ -34,8 +34,8 @@
       "accept_bot_messages": false
     },
     "dingtalk": {
-      "enabled": false,
-      "bot_prefix": "",
+      "enabled": true,
+      "bot_prefix": "[BOT]",
       "filter_tool_messages": false,
       "filter_thinking": false,
       "dm_policy": "open",
@@ -43,8 +43,8 @@
       "allow_from": [],
       "deny_message": "",
       "require_mention": false,
-      "client_id": "",
-      "client_secret": "",
+      "client_id": "dingxdultbuejzaw6y24",
+      "client_secret": "B5k6mFDDtn_Pe6VIi0hZysJWvBs3D4YSWXkioj8nH1ZB9F5I8k_Y93dTyvguszXl",
       "message_type": "markdown",
       "card_template_id": "",
       "card_template_key": "content",
@@ -52,8 +52,8 @@
       "card_auto_layout": false
     },
     "feishu": {
-      "enabled": false,
-      "bot_prefix": "",
+      "enabled": true,
+      "bot_prefix": "[BOT]",
       "filter_tool_messages": false,
       "filter_thinking": false,
       "dm_policy": "open",
@@ -61,8 +61,8 @@
       "allow_from": [],
       "deny_message": "",
       "require_mention": false,
-      "app_id": "",
-      "app_secret": "",
+      "app_id": "cli_a95239150d399bb3",
+      "app_secret": "LhIb5VqhCCYZ4ogJc8xcrgsTz4jo77mJ",
       "encrypt_key": "",
       "verification_token": "",
       "domain": "feishu"
@@ -171,7 +171,7 @@
       "tts_voice": "en-US-Journey-D",
       "stt_provider": "deepgram",
       "language": "en-US",
-      "welcome_greeting": "Hi! This is CoPaw. How can I help you?"
+      "welcome_greeting": "Hi! This is MiLu. How can I help you?"
     },
     "wecom": {
       "enabled": false,
@@ -239,7 +239,7 @@
       "tavily_search": {
         "name": "tavily_mcp",
         "description": "",
-        "enabled": false,
+        "enabled": true,
         "transport": "stdio",
         "url": "",
         "headers": {},
@@ -254,11 +254,6 @@
         "cwd": ""
       }
     }
-  },
-  "last_dispatch": {
-    "channel": "console",
-    "user_id": "admin",
-    "session_id": "36134b67-8f37-4a64-86e7-8de1adc25941"
   },
   "running": {
     "max_iters": 100,
@@ -317,10 +312,6 @@
       "provider_id": "",
       "model": ""
     }
-  },
-  "active_model": {
-    "provider_id": "yunwu",
-    "model": "claude-sonnet-4-6"
   },
   "language": "zh",
   "system_prompt_files": [

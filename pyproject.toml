@@ -1,5 +1,5 @@
 [project]
-name = "copaw"
+name = "milu"
 dynamic = ["version"]
 description = "MiLu is a **personal assistant** that runs in your own environment. It talks to you over multiple channels (DingTalk, Feishu, QQ, Discord, iMessage, etc.) and runs scheduled tasks according to your configuration. **What it can do is driven by Skills — the possibilities are open-ended.** Built-in skills include cron, PDF/Office handling, news digest, file reading, and more; you can add custom skills. All data and tasks run on your machine; no third-party hosting."
 readme = "README.md"
@@ -43,15 +43,15 @@ dependencies = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "copaw.__version__.__version__"}
+version = {attr = "milu.__version__.__version__"}
 
 [tool.setuptools]
 packages = { find = { where = ["src"] } }
 include-package-data = true
 
 [tool.setuptools.package-data]
-# Dockerfile copies console build output to src/copaw/console/ (no dist subdir).
-"copaw" = [
+# Dockerfile copies console build output to src/milu/console/ (no dist subdir).
+"milu" = [
     "console/**",
     "agents/md_files/**",
     "agents/skills/**",
@@ -66,8 +66,8 @@ requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-copaw = "copaw.cli.main:cli"
-milu = "copaw.cli.main:cli"
+copaw = "milu.cli.main:cli"
+milu = "milu.cli.main:cli"
 
 [project.optional-dependencies]
 dev = [
@@ -81,11 +81,11 @@ local = [
     "huggingface_hub>=0.20.0",
 ]
 llamacpp = [
-    "copaw[local]",
+    "milu[local]",
     "llama-cpp-python>=0.3.0",
 ]
 mlx = [
-    "copaw[local]",
+    "milu[local]",
     "mlx-lm>=0.10.0; sys_platform == 'darwin'",
 ]
 ollama = [
@@ -95,7 +95,7 @@ whisper = [
     "openai-whisper>=20231117",
 ]
 full = [
-    "copaw[local,ollama,llamacpp,whisper]",
+    "milu[local,ollama,llamacpp,whisper]",
     "mlx-lm>=0.10.0; sys_platform == 'darwin'",
 ]
 

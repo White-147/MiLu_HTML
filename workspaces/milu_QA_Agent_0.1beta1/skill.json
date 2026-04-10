@@ -1,0 +1,33 @@
+{
+  "schema_version": "workspace-skill-manifest.v1",
+  "version": 1775785168268,
+  "skills": {
+    "guidance": {
+      "enabled": true,
+      "channels": [
+        "all"
+      ],
+      "source": "builtin",
+      "config": {},
+      "metadata": {
+        "name": "guidance",
+        "description": "回答用户关于 CoPaw 安装与配置的问题：优先定位并阅读本地文档，再提炼答案；若本地信息不足，兜底访问官网文档。",
+        "version_text": "1.0",
+        "commit_text": "",
+        "signature": "14ad4136b6e8326377ac3093f7a45b7d0a69613e8a2ae8e3c92b55cbff3c4c94",
+        "source": "builtin",
+        "protected": false,
+        "requirements": {
+          "require_bins": [],
+          "require_envs": []
+        },
+        "updated_at": "2026-04-07T07:49:36.872462Z"
+      },
+      "requirements": {
+        "require_bins": [],
+        "require_envs": []
+      },
+      "updated_at": "2026-04-07T07:49:36.872462Z"
+    }
+  }
+}

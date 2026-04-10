@@ -550,6 +550,99 @@ html.dark-mode .ant-modal-body .ant-form-item-extra {
   color: rgba(255, 255, 255, 0.35) !important;
 }
 
+/* Cron jobs — 请求内容类型参考：prefixCls=milu → milu-tabs-* / milu-typography-*；保留 ant-* 后备 */
+html.dark-mode .milu-cron-content-type-modal .milu-tabs-tab:not(.milu-tabs-tab-active),
+html.dark-mode
+  .milu-cron-content-type-modal
+  .milu-tabs-tab:not(.milu-tabs-tab-active)
+  .milu-tabs-tab-btn,
+html.dark-mode .milu-cron-content-type-modal .ant-tabs-tab:not(.ant-tabs-tab-active),
+html.dark-mode
+  .milu-cron-content-type-modal
+  .ant-tabs-tab:not(.ant-tabs-tab-active)
+  .ant-tabs-tab-btn {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+html.dark-mode .milu-cron-content-type-modal .milu-tabs-tab-active,
+html.dark-mode
+  .milu-cron-content-type-modal
+  .milu-tabs-tab-active
+  .milu-tabs-tab-btn,
+html.dark-mode .milu-cron-content-type-modal .ant-tabs-tab-active,
+html.dark-mode
+  .milu-cron-content-type-modal
+  .ant-tabs-tab-active
+  .ant-tabs-tab-btn {
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+html.dark-mode .milu-cron-content-type-modal .milu-tabs-tab:not(.milu-tabs-tab-active):hover,
+html.dark-mode
+  .milu-cron-content-type-modal
+  .milu-tabs-tab:not(.milu-tabs-tab-active):hover
+  .milu-tabs-tab-btn,
+html.dark-mode .milu-cron-content-type-modal .ant-tabs-tab:not(.ant-tabs-tab-active):hover,
+html.dark-mode
+  .milu-cron-content-type-modal
+  .ant-tabs-tab:not(.ant-tabs-tab-active):hover
+  .ant-tabs-tab-btn {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+html.dark-mode .milu-cron-content-type-modal .milu-typography-secondary,
+html.dark-mode .milu-cron-content-type-modal .ant-typography-secondary {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+html:not(.dark-mode) .milu-cron-content-type-modal .milu-tabs-tab:not(.milu-tabs-tab-active),
+html:not(.dark-mode)
+  .milu-cron-content-type-modal
+  .milu-tabs-tab:not(.milu-tabs-tab-active)
+  .milu-tabs-tab-btn,
+html:not(.dark-mode) .milu-cron-content-type-modal .ant-tabs-tab:not(.ant-tabs-tab-active),
+html:not(.dark-mode)
+  .milu-cron-content-type-modal
+  .ant-tabs-tab:not(.ant-tabs-tab-active)
+  .ant-tabs-tab-btn {
+  color: rgba(0, 0, 0, 0.78) !important;
+}
+
+html:not(.dark-mode) .milu-cron-content-type-modal .milu-tabs-tab-active,
+html:not(.dark-mode)
+  .milu-cron-content-type-modal
+  .milu-tabs-tab-active
+  .milu-tabs-tab-btn,
+html:not(.dark-mode) .milu-cron-content-type-modal .ant-tabs-tab-active,
+html:not(.dark-mode)
+  .milu-cron-content-type-modal
+  .ant-tabs-tab-active
+  .ant-tabs-tab-btn {
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+
+html:not(.dark-mode)
+  .milu-cron-content-type-modal
+  .milu-tabs-tab:not(.milu-tabs-tab-active):hover,
+html:not(.dark-mode)
+  .milu-cron-content-type-modal
+  .milu-tabs-tab:not(.milu-tabs-tab-active):hover
+  .milu-tabs-tab-btn,
+html:not(.dark-mode)
+  .milu-cron-content-type-modal
+  .ant-tabs-tab:not(.ant-tabs-tab-active):hover,
+html:not(.dark-mode)
+  .milu-cron-content-type-modal
+  .ant-tabs-tab:not(.ant-tabs-tab-active):hover
+  .ant-tabs-tab-btn {
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+
+html:not(.dark-mode) .milu-cron-content-type-modal .milu-typography-secondary,
+html:not(.dark-mode) .milu-cron-content-type-modal .ant-typography-secondary {
+  color: rgba(0, 0, 0, 0.72) !important;
+}
+
 /* Drawer */
 html.dark-mode .milu-drawer-content,
 html.dark-mode .ant-drawer-content {

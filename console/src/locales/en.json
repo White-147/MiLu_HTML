@@ -851,6 +851,7 @@
     "localModelPathMissing": "This downloaded model is missing a local path.",
     "localModelsSectionTitle": "Local Models",
     "localModelsSectionDescription": "Downloaded models can be started immediately. Only one model download and one local server instance can run at a time.",
+    "localPerformanceHint": "Local model response speed depends on your hardware. Smaller models (e.g. 2B) may expose internal reasoning in replies; choose a larger model for better results when your hardware allows.",
     "localModelsLockedHint": "Please install llama.cpp first",
     "localAlternativeRuntimeHint": "Please try Ollama or LM Studio",
     "localModelsCount": "Downloaded {{downloaded}} / {{total}}",

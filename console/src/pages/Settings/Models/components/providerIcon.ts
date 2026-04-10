@@ -26,7 +26,7 @@ export const providerIcon = (provider: string) => {
       return "https://gw.alicdn.com/imgextra/i4/O1CN01aDHDeq1mgj7gbRkhi_!!6000000004984-2-tps-400-400.png";
     case "lmstudio":
       return "https://gw.alicdn.com/imgextra/i4/O1CN01Abv67y1jHaXLqikIJ_!!6000000004523-2-tps-200-200.png";
-    case "copaw-local":
+    case "milu-local":
       return `${import.meta.env.BASE_URL}milu-local-288.png?v=${__MILU_STATIC_ASSET_STAMP__}`;
     case "zhipu-cn":
     case "zhipu-intl":

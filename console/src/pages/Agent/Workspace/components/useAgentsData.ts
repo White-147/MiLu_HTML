@@ -15,7 +15,7 @@ const getParentDir = (filePath: string): string => {
 
 export const useAgentsData = () => {
   const { t } = useTranslation();
-  const { selectedAgent } = useAgentStore();
+  const { selectedAgent, agents } = useAgentStore();
   const [files, setFiles] = useState<MarkdownFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<MarkdownFile | null>(null);
   const [dailyMemories, setDailyMemories] = useState<DailyMemoryFile[]>([]);
@@ -26,6 +26,9 @@ export const useAgentsData = () => {
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
   const [enabledFiles, setEnabledFiles] = useState<string[]>([]);
   const { message } = useAppMessage();
+
+  const getSelectedAgentWorkspacePath = () =>
+    agents.find((agent) => agent.id === selectedAgent)?.workspace_dir ?? "";
 
   useEffect(() => {
     const initializeData = async () => {
@@ -49,7 +52,7 @@ export const useAgentsData = () => {
       if (fileList.length > 0) {
         setWorkspacePath(getParentDir(fileList[0].path));
       } else {
-        setWorkspacePath("");
+        setWorkspacePath(getSelectedAgentWorkspacePath());
       }
 
       // Try to re-select the same file in new workspace
@@ -70,7 +73,7 @@ export const useAgentsData = () => {
     };
     initializeData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedAgent]);
+  }, [selectedAgent, agents]);
 
   // Re-sort when enabledFiles changes (for toggle/reorder operations)
   useEffect(() => {
@@ -139,7 +142,7 @@ export const useAgentsData = () => {
       if (fileList.length > 0) {
         setWorkspacePath(getParentDir(fileList[0].path));
       } else {
-        setWorkspacePath("");
+        setWorkspacePath(getSelectedAgentWorkspacePath());
       }
     } catch (error) {
       console.error("Failed to fetch files", error);

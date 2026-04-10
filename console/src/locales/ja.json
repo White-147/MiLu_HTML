@@ -786,6 +786,7 @@
     "localModelPathMissing": "このダウンロード済みモデルにはローカルパス情報がありません。",
     "localModelsSectionTitle": "ローカルモデル",
     "localModelsSectionDescription": "ダウンロード済みモデルはすぐに起動できます。同時に実行できるのは 1 つのモデルダウンロードと 1 つのローカルサーバーだけです。",
+    "localPerformanceHint": "ローカルモデルの応答速度はハードウェアに依存します。小さなモデル（2B など）は回答に内部推論が表示される場合があります。より良い体験のため、ハードウェアが許す範囲でより大きなモデルをお選びください。",
     "localModelsLockedHint": "先に llama.cpp をインストールしてください",
     "localAlternativeRuntimeHint": "Ollama または LM Studio をお試しください",
     "localModelsCount": "ダウンロード済み {{downloaded}} / {{total}}",

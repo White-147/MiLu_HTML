@@ -1,4 +1,48 @@
 {
-  "version": 1,
-  "jobs": []
+  "jobs": [
+    {
+      "dispatch": {
+        "channel": "console",
+        "meta": {},
+        "mode": "stream",
+        "target": {
+          "session_id": "cron-1775785378064-xnvhoj",
+          "user_id": "admin"
+        },
+        "type": "channel"
+      },
+      "enabled": true,
+      "id": "65906435-0530-44a2-9516-60de24d6faa1",
+      "meta": {},
+      "name": "每日天气",
+      "request": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "请告诉我盐城今天天气情况，包括温度和是否下雨",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "session_id": null,
+        "user_id": null
+      },
+      "runtime": {
+        "max_concurrency": 1,
+        "misfire_grace_seconds": 60,
+        "timeout_seconds": 300
+      },
+      "schedule": {
+        "cron": "0 9 * * *",
+        "timezone": "Asia/Shanghai",
+        "type": "cron"
+      },
+      "task_type": "text",
+      "text": "请告诉我盐城今天天气情况，包括温度和是否下雨"
+    }
+  ],
+  "version": 1
 }

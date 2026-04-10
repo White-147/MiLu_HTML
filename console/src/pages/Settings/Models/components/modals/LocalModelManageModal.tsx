@@ -616,6 +616,9 @@ export function LocalModelManageModal({
               <div className={styles.localSectionTitle}>
                 {t("models.localModelsSectionTitle")}
               </div>
+              <div className={styles.localPerformanceHint}>
+                {t("models.localPerformanceHint")}
+              </div>
             </div>
           </div>
 
