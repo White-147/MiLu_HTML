@@ -21,7 +21,7 @@ const defaultConfig = {
     greeting: "Hello, how can I help you today?",
     description:
       "I am a helpful assistant that can help you with your questions.",
-    avatar: `${import.meta.env.BASE_URL}milu-logo.png?v=${__MILU_STATIC_ASSET_STAMP__}`,
+    avatar: `${import.meta.env.BASE_URL}milu-local-288.png?v=${__MILU_STATIC_ASSET_STAMP__}`,
     prompts: [
       {
         value: "Let's start a new journey!",

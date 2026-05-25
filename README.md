@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./console/public/milu-logo.png" alt="MiLuAssistantWeb logo" width="170">
+  <img src="./console/public/logo.png" alt="MiLuAssistantWeb logo" width="132">
 </p>
 
 <h1 align="center">MiLuAssistantWeb</h1>
