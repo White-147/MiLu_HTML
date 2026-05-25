@@ -1,7 +1,23 @@
-# Security Policy
+# 安全策略
 
-MiLuAssistantWeb inherits the single-operator trust model from the CoPaw / QwenPaw project line. It is intended for local or self-hosted usage where the machine owner controls the runtime, model credentials, skills, workspace files, and connected channels.
+## 支持范围
 
-Do not commit runtime data, user workspaces, provider credentials, private custom skills, or local model files. Keep secrets in the configured secret directory and restrict access to trusted operators.
+当前仅维护 `main` 分支和最近一次公开发布内容。历史实验分支、上游未合并变更、本地工作区和未脱敏运行数据不在公开安全支持范围内。
 
-If you discover a security issue in this repository, please open a private report or contact the repository owner before disclosing it publicly.
+## 漏洞报告方式
+
+如发现安全问题，请优先使用 GitHub 仓库的 **Report a vulnerability** / Security Advisories 私密入口提交。若仓库暂未启用该入口，请先提交一个不包含漏洞细节的 Issue，说明影响范围和联系方式，等待维护者私下沟通。
+
+请不要在公开 Issue、PR、README 评论或提交记录中直接粘贴：
+
+- 可复现攻击步骤、PoC 或漏洞利用代码
+- API Key、模型 Provider 密钥、Token、Cookie、私钥、工作区配置
+- 用户工作区、聊天记录、上传文件、渠道凭据、私有 Skills 或本地模型文件
+
+## 数据与密钥约束
+
+MiLuAssistantWeb 继承 CoPaw / QwenPaw 的本地或自部署使用模型。运行时密钥、用户工作区、模型配置、私有 Skills 和本地模型文件应保存在受控目录中，不应提交到 Git。提交问题、截图或日志前必须先脱敏。
+
+## 处理预期
+
+维护者会先确认问题是否影响当前公开代码，再决定修复方式、披露范围和是否需要在 README 或发布说明中补充风险提示。
