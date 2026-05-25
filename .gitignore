@@ -109,7 +109,7 @@ src/.hypothesis/
 .worktrees/
 
 # Local models (large binary files)
-local_models/
+/local_models/
 
 # Browser user data (runtime cache)
 workspaces/*/browser/user_data/
