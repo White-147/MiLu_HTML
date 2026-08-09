@@ -30,40 +30,40 @@ const CHANNELS_WITH_ACCESS_CONTROL: ChannelKey[] = [
   "weixin",
 ];
 
-// Doc EN URLs per channel (anchors on https://copaw.agentscope.io/docs/channels)
+// Doc EN URLs per channel (anchors on https://milu.agentscope.io/docs/channels)
 const CHANNEL_DOC_EN_URLS: Partial<Record<ChannelKey, string>> = {
   dingtalk:
-    "https://copaw.agentscope.io/docs/channels/?lang=en#DingTalk-recommended",
-  feishu: "https://copaw.agentscope.io/docs/channels/?lang=en#Feishu-Lark",
+    "https://milu.agentscope.io/docs/channels/?lang=en#DingTalk-recommended",
+  feishu: "https://milu.agentscope.io/docs/channels/?lang=en#Feishu-Lark",
   imessage:
-    "https://copaw.agentscope.io/docs/channels/?lang=en#iMessage-macOS-only",
-  discord: "https://copaw.agentscope.io/docs/channels/?lang=en#Discord",
-  qq: "https://copaw.agentscope.io/docs/channels/?lang=en#QQ",
-  telegram: "https://copaw.agentscope.io/docs/channels/?lang=en#Telegram",
-  mqtt: "https://copaw.agentscope.io/docs/channels/?lang=en#MQTT",
-  mattermost: "https://copaw.agentscope.io/docs/channels/?lang=en#Mattermost",
-  matrix: "https://copaw.agentscope.io/docs/channels/?lang=en#Matrix",
-  wecom: "https://copaw.agentscope.io/docs/channels/?lang=en#WeCom-WeChat-Work",
+    "https://milu.agentscope.io/docs/channels/?lang=en#iMessage-macOS-only",
+  discord: "https://milu.agentscope.io/docs/channels/?lang=en#Discord",
+  qq: "https://milu.agentscope.io/docs/channels/?lang=en#QQ",
+  telegram: "https://milu.agentscope.io/docs/channels/?lang=en#Telegram",
+  mqtt: "https://milu.agentscope.io/docs/channels/?lang=en#MQTT",
+  mattermost: "https://milu.agentscope.io/docs/channels/?lang=en#Mattermost",
+  matrix: "https://milu.agentscope.io/docs/channels/?lang=en#Matrix",
+  wecom: "https://milu.agentscope.io/docs/channels/?lang=en#WeCom-WeChat-Work",
   weixin:
-    "https://copaw.agentscope.io/docs/channels/?lang=en#WeChat-Personal-iLink",
+    "https://milu.agentscope.io/docs/channels/?lang=en#WeChat-Personal-iLink",
   xiaoyi:
     "https://developer.huawei.com/consumer/cn/doc/service/openclaw-0000002518410344",
 };
 
-// Doc ZH URLs per channel (anchors on https://copaw.agentscope.io/docs/channels)
+// Doc ZH URLs per channel (anchors on https://milu.agentscope.io/docs/channels)
 const CHANNEL_DOC_ZH_URLS: Partial<Record<ChannelKey, string>> = {
-  dingtalk: "https://copaw.agentscope.io/docs/channels/?lang=zh#钉钉推荐",
-  feishu: "https://copaw.agentscope.io/docs/channels/?lang=zh#飞书",
+  dingtalk: "https://milu.agentscope.io/docs/channels/?lang=zh#钉钉推荐",
+  feishu: "https://milu.agentscope.io/docs/channels/?lang=zh#飞书",
   imessage:
-    "https://copaw.agentscope.io/docs/channels/?lang=zh#iMessage仅-macOS",
-  discord: "https://copaw.agentscope.io/docs/channels/?lang=zh#Discord",
-  qq: "https://copaw.agentscope.io/docs/channels/?lang=zh#QQ",
-  telegram: "https://copaw.agentscope.io/docs/channels/?lang=zh#Telegram",
-  mqtt: "https://copaw.agentscope.io/docs/channels/?lang=zh#MQTT",
-  mattermost: "https://copaw.agentscope.io/docs/channels/?lang=zh#Mattermost",
-  matrix: "https://copaw.agentscope.io/docs/channels/?lang=zh#Matrix",
-  wecom: "https://copaw.agentscope.io/docs/channels/?lang=zh#企业微信",
-  weixin: "https://copaw.agentscope.io/docs/channels/?lang=zh#微信个人iLink",
+    "https://milu.agentscope.io/docs/channels/?lang=zh#iMessage仅-macOS",
+  discord: "https://milu.agentscope.io/docs/channels/?lang=zh#Discord",
+  qq: "https://milu.agentscope.io/docs/channels/?lang=zh#QQ",
+  telegram: "https://milu.agentscope.io/docs/channels/?lang=zh#Telegram",
+  mqtt: "https://milu.agentscope.io/docs/channels/?lang=zh#MQTT",
+  mattermost: "https://milu.agentscope.io/docs/channels/?lang=zh#Mattermost",
+  matrix: "https://milu.agentscope.io/docs/channels/?lang=zh#Matrix",
+  wecom: "https://milu.agentscope.io/docs/channels/?lang=zh#企业微信",
+  weixin: "https://milu.agentscope.io/docs/channels/?lang=zh#微信个人iLink",
   xiaoyi:
     "https://developer.huawei.com/consumer/cn/doc/service/openclaw-0000002518410344",
 };
@@ -883,7 +883,7 @@ export function ChannelDrawer({
                 CHANNEL_DOC_EN_URLS[activeKey]! ||
                 CHANNEL_DOC_ZH_URLS[activeKey]!;
               const isCopawDoc = url.includes(
-                "copaw.agentscope.io/docs/channels/",
+                "milu.agentscope.io/docs/channels/",
               );
               const finalUrl =
                 isCopawDoc && currentLang === "zh"

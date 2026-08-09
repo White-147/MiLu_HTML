@@ -68,10 +68,10 @@ def _load_builtin_channels() -> dict[str, type[BaseChannel]]:
                     exc_info=True,
                 )
                 raise
-            logger.debug(
-                "built-in channel unavailable: %s",
+            logger.warning(
+                "built-in channel unavailable (dependency not installed): %s",
                 key,
-                exc_info=True,
+                exc_info=False,
             )
             continue
         out[key] = cls

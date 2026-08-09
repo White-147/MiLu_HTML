@@ -237,6 +237,8 @@ async def lifespan(
 
     # Setup approval service with default agent's channel_manager
     default_agent = await multi_agent_manager.get_agent("default")
+    # 挂载 channel_manager 到 app.state（voice 路由依赖，修复 /voice/* 死链）
+    app.state.channel_manager = default_agent.channel_manager
     if default_agent.channel_manager:
         from .approvals import get_approval_service
 

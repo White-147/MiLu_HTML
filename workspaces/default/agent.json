@@ -2,7 +2,7 @@
   "id": "default",
   "name": "Default Agent",
   "description": "Default MiLu agent (migrated from legacy config)",
-  "workspace_dir": "D:\\code\\MiLu\\workspaces\\default",
+  "workspace_dir": "D:\\code\\MiLuAssistantWeb\\workspaces\\default",
   "channels": {
     "imessage": {
       "enabled": false,
