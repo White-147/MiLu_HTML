@@ -1,143 +1,243 @@
 # -*- coding: utf-8 -*-
-"""Local model runtime manager.
-
-The public MiLu build keeps the local-model settings surface but does not
-bundle a llama.cpp runtime or GGUF model catalog. This manager provides a
-stable no-runtime implementation so the web app can boot and report the local
-runtime as unavailable instead of failing at import time.
-"""
+"""Facade for local llama.cpp and model download management."""
 
 from __future__ import annotations
 
-from enum import Enum
-from pathlib import Path
-from typing import Optional
+import asyncio
+import json
+import logging
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
+from ..constant import DEFAULT_LOCAL_PROVIDER_DIR
 
-class DownloadSource(str, Enum):
-    """Supported model download source identifiers."""
-
-    AUTO = "auto"
-    MODELSCOPE = "modelscope"
-    HUGGINGFACE = "huggingface"
-
-
-class LocalModelInfo(BaseModel):
-    """Local model metadata returned to the console."""
-
-    id: str
-    name: str
-    size_bytes: int = Field(default=0)
-    downloaded: bool = Field(default=False)
-    description: Optional[str] = None
-    source: Optional[str] = None
-    local_path: Optional[str] = None
+from .llamacpp import LlamaCppBackend, LlamaCppServerSetupResult
+from .model_manager import LocalModelInfo as RecommendedLocalModelInfo
+from .model_manager import ModelManager, DownloadSource
 
 
-def _idle_progress() -> dict[str, object]:
-    return {
-        "status": "idle",
-        "model_name": None,
-        "downloaded_bytes": 0,
-        "total_bytes": None,
-        "speed_bytes_per_sec": 0.0,
-        "source": None,
-        "error": None,
-        "local_path": None,
-    }
+logger = logging.getLogger(__name__)
 
 
-class LocalModelManager:
-    """No-runtime local model manager used by the public desktop build."""
+class LocalModelConfig(BaseModel):
+    """Persistent local runtime settings for embedded llama.cpp."""
 
-    DEFAULT_LLAMA_CPP_RELEASE_TAG = "b4761"
-    DEFAULT_LLAMA_CPP_BASE_URLS = ()
+    max_context_length: int = Field(
+        default=65536,
+        description="Maximum context length passed to llama.cpp on startup.",
+        ge=32768,
+    )
+    port: int | None = Field(
+        default=None,
+        description=(
+            "Optional fixed port for llama.cpp startup. Null means auto."
+        ),
+        ge=1,
+        le=65535,
+    )
 
-    _instance: "LocalModelManager | None" = None
 
-    def __init__(self, models_root: Path | None = None) -> None:
-        self.models_root = models_root
+class LocalModelManager:  # pylint: disable=too-many-public-methods
+    """Single entry point for local runtime downloads and server control."""
 
-    @classmethod
-    def get_instance(cls) -> "LocalModelManager":
-        if cls._instance is None:
-            cls._instance = cls()
-        return cls._instance
+    _instance: LocalModelManager | None = None
 
-    def check_llamacpp_installability(self) -> tuple[bool, str]:
-        return (
-            False,
-            "Local model runtime is not bundled in this public build.",
+    DEFAULT_LLAMA_CPP_BASE_URL = (
+        # Mirror of "https://github.com/ggml-org/llama.cpp/releases/download"
+        "https://download.milu.agentscope.io/files/models/llama_cpp"
+    )
+    DEFAULT_LLAMA_CPP_RELEASE_TAG = "b8744"
+    CONFIG_FILE_NAME = "config.json"
+
+    def __init__(
+        self,
+        *,
+        model_manager: ModelManager | None = None,
+        llamacpp_backend: LlamaCppBackend | None = None,
+    ) -> None:
+        self._model_manager = model_manager or ModelManager()
+        self._llamacpp_backend = llamacpp_backend or LlamaCppBackend()
+        self._server_lifecycle_lock = asyncio.Lock()
+        self._config_path = DEFAULT_LOCAL_PROVIDER_DIR / self.CONFIG_FILE_NAME
+        self._config = self._load_config()
+
+    def _load_config(self) -> LocalModelConfig:
+        """Load persisted local runtime settings from disk."""
+        if not self._config_path.exists():
+            return LocalModelConfig()
+
+        try:
+            with open(self._config_path, "r", encoding="utf-8") as file_obj:
+                payload = json.load(file_obj)
+            return LocalModelConfig.model_validate(payload)
+        except (OSError, ValueError, ValidationError) as exc:
+            logger.warning(
+                "Failed to load local model config from %s: %s",
+                self._config_path,
+                exc,
+            )
+            return LocalModelConfig()
+
+    @staticmethod
+    def _write_config_file(
+        config_path,
+        payload: dict[str, Any],
+    ) -> None:
+        """Write local runtime settings to disk in a worker thread."""
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(config_path, "w", encoding="utf-8") as file_obj:
+            json.dump(
+                payload,
+                file_obj,
+                ensure_ascii=False,
+                indent=2,
+            )
+        try:
+            config_path.chmod(0o600)
+        except OSError:
+            pass
+
+    async def _save_config(self) -> None:
+        """Persist local runtime settings to disk without blocking the loop."""
+        await asyncio.to_thread(
+            self._write_config_file,
+            self._config_path,
+            self._config.model_dump(),
         )
 
+    def get_config(self) -> LocalModelConfig:
+        """Return a defensive copy of the current local runtime settings."""
+        return self._config.model_copy(deep=True)
+
+    async def set_max_context_length(self, max_context_length: int) -> None:
+        """Persist the max context length for future llama.cpp startups."""
+        async with self._server_lifecycle_lock:
+            self._config.max_context_length = max_context_length
+            await self._save_config()
+
+    async def set_port(self, port: int | None) -> None:
+        """Persist the llama.cpp server port for future startups."""
+        async with self._server_lifecycle_lock:
+            self._config.port = port
+            await self._save_config()
+
     def check_llamacpp_installation(self) -> tuple[bool, str]:
-        return False, "llama.cpp runtime is not installed."
+        """Return whether llama.cpp is already installed locally."""
+        return self._llamacpp_backend.check_llamacpp_installation()
 
-    def get_llamacpp_server_status(self) -> dict[str, object]:
-        return {
-            "running": False,
-            "port": None,
-            "model_name": None,
-            "pid": None,
-        }
+    def check_llamacpp_installability(self) -> tuple[bool, str]:
+        """Return whether the current environment can install llama.cpp."""
+        return self._llamacpp_backend.check_llamacpp_installability()
 
-    def is_llamacpp_server_transitioning(self) -> bool:
-        return False
+    async def start_llamacpp_download(self) -> bool:
+        """Start the llama.cpp binary download task.
+
+        Returns whether a running llama.cpp server was stopped first.
+        """
+        async with self._server_lifecycle_lock:
+            server_was_running = bool(
+                self._llamacpp_backend.get_server_status().get("running"),
+            )
+            if server_was_running:
+                await self._llamacpp_backend.shutdown_server()
+
+            self._llamacpp_backend.download(
+                self.DEFAULT_LLAMA_CPP_BASE_URL,
+                self.DEFAULT_LLAMA_CPP_RELEASE_TAG,
+            )
+            return server_was_running
+
+    async def has_update(self) -> bool:
+        """Return whether a llama.cpp update is available for download."""
+        return await self._llamacpp_backend.has_update(
+            self.DEFAULT_LLAMA_CPP_RELEASE_TAG,
+        )
 
     async def check_llamacpp_server_ready(
         self,
         timeout: float = 120.0,
     ) -> bool:
-        return False
+        """Return whether the llama.cpp server is ready."""
+        return await self._llamacpp_backend.server_ready(timeout=timeout)
 
-    async def has_update(self) -> bool:
-        return False
+    def get_llamacpp_download_progress(self) -> dict[str, Any]:
+        """Return the current llama.cpp download progress."""
+        return self._llamacpp_backend.get_download_progress()
 
-    async def start_llamacpp_download(self) -> bool:
-        raise RuntimeError(
-            "Local model runtime download is not available in this build.",
-        )
+    def get_llamacpp_server_status(self) -> dict[str, Any]:
+        """Return the current llama.cpp server status."""
+        return self._llamacpp_backend.get_server_status()
 
-    def get_llamacpp_download_progress(self) -> dict[str, object]:
-        return _idle_progress()
+    def is_llamacpp_server_transitioning(self) -> bool:
+        """Return whether the llama.cpp server is starting or stopping."""
+        return self._llamacpp_backend.is_server_transitioning()
 
     def cancel_llamacpp_download(self) -> None:
-        return None
+        """Cancel the current llama.cpp download task."""
+        self._llamacpp_backend.cancel_download()
 
-    async def setup_server(self, model_id: str) -> int:
-        raise RuntimeError(
-            f"Local model server is unavailable; cannot start {model_id}.",
-        )
-
-    async def shutdown_server(self) -> None:
-        return None
-
-    def get_recommended_models(self) -> list[LocalModelInfo]:
-        return []
+    def get_recommended_models(
+        self,
+    ) -> list[RecommendedLocalModelInfo]:
+        """Return recommended local models for the current machine."""
+        return self._model_manager.get_recommended_models()
 
     def is_model_downloaded(self, model_name: str) -> bool:
-        return False
+        """Return whether the requested model is already downloaded."""
+        return self._model_manager.is_downloaded(model_name)
 
-    def list_downloaded_models(self) -> list[LocalModelInfo]:
-        return []
+    def list_downloaded_models(self) -> list[RecommendedLocalModelInfo]:
+        """Return all downloaded local model repositories."""
+        return self._model_manager.list_downloaded_models()
 
     def start_model_download(
         self,
-        model_name: str,
+        model_id: str,
         source: DownloadSource | None = None,
     ) -> None:
-        raise RuntimeError(
-            f"Local model download is not available in this build: "
-            f"{model_name}",
-        )
+        """Start downloading the requested model."""
+        self._model_manager.download_model(model_id, source=source)
 
-    def get_model_download_progress(self) -> dict[str, object]:
-        return _idle_progress()
+    def get_model_download_progress(self) -> dict[str, Any]:
+        """Return the current model download progress."""
+        return self._model_manager.get_download_progress()
 
     def cancel_model_download(self) -> None:
-        return None
+        """Cancel the current model download task."""
+        self._model_manager.cancel_download()
 
-    def remove_downloaded_model(self, model_name: str) -> None:
-        return None
+    def remove_downloaded_model(self, model_id: str) -> None:
+        """Delete a downloaded local model by repo id or directory name."""
+        self._model_manager.remove_downloaded_model(model_id)
+
+    async def setup_server(
+        self,
+        model_id: str,
+    ) -> LlamaCppServerSetupResult:
+        """Start the llama.cpp server for the specified model."""
+        async with self._server_lifecycle_lock:
+            return await self._llamacpp_backend.setup_server(
+                model_path=self._model_manager.get_model_dir(model_id),
+                model_name=model_id,
+                max_context_length=self._config.max_context_length,
+                port=self._config.port,
+            )
+
+    async def shutdown_server(self) -> None:
+        """Stop the current llama.cpp server if it is running."""
+        async with self._server_lifecycle_lock:
+            await self._llamacpp_backend.shutdown_server()
+
+    def shutdown_server_sync(self) -> None:
+        """Best-effort synchronous shutdown for process teardown paths."""
+        self._llamacpp_backend.shutdown_server_sync()
+
+    @staticmethod
+    def get_instance() -> LocalModelManager:
+        """Return the singleton LocalModelManager instance."""
+        # This is a simple module-level singleton pattern. In a more complex
+        # application, you might want to use a dependency injection framework.
+        if LocalModelManager._instance is None:
+            LocalModelManager._instance = LocalModelManager()
+        return LocalModelManager._instance
