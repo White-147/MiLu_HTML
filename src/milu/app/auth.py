@@ -53,9 +53,6 @@ _PUBLIC_PATHS: frozenset[str] = frozenset(
 _PUBLIC_PREFIXES: tuple[str, ...] = (
     "/assets/",
     "/logo.png",
-    "/milu-logo.png",
-    "/milu-favicon.png",
-    "/milu-symbol.svg",
 )
 
 

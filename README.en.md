@@ -35,6 +35,8 @@ MiLuAssistantWeb is a web-based personal AI assistant adapted from the CoPaw / Q
 - Renamed the Python package, CLI entry, runtime namespace, working directory, and environment variables from the original assistant project to `milu`.
 - Replaced web console branding assets with MiLu-related icons and product naming.
 - Added MiLu-specific local provider configuration and workspace defaults.
+- The console defaults to Simplified Chinese and shows a model-setup guide bar on the chat home when no usable model is configured.
+- Channels are loaded on demand: `milu_ENABLED_CHANNELS` / `milu_DISABLED_CHANNELS` control which channel modules are imported at startup, avoiding slow heavy SDKs (e.g. feishu lark_oapi) when their channels are disabled.
 - Cleaned runtime data, user workspaces, and private custom configuration before publishing.
 - Prepared this web edition as the base project for the Windows desktop installer.
 
@@ -70,7 +72,7 @@ npm run dev
 
 ## Relationship With MiLuAssistantDesktop
 
-This repository provides the web application and Python backend. The desktop installer repository packages this project into an Electron / NSIS Windows application, starts the Python backend locally, loads the web UI in a native window, and isolates user data under the Windows local app data directory.
+This repository provides the web application and Python backend. The desktop installer repository packages this project into an Electron + Inno Setup Windows application, starts the Python backend locally, loads the web UI in a native window, and isolates user data under the Windows local app data directory.
 
 ## License and Security
 

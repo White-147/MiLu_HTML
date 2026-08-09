@@ -759,7 +759,11 @@ if os.path.isdir(_CONSOLE_STATIC_DIR):
 
     def _serve_console_index():
         if _CONSOLE_INDEX and _CONSOLE_INDEX.exists():
-            return FileResponse(_CONSOLE_INDEX)
+            # no-cache：每次加载最新 index.html（hash 资源文件名保证 assets 长缓存安全）
+            return FileResponse(
+                _CONSOLE_INDEX,
+                headers={"Cache-Control": "no-cache"},
+            )
 
         raise HTTPException(status_code=404, detail="Not Found")
 
@@ -785,33 +789,10 @@ if os.path.isdir(_CONSOLE_STATIC_DIR):
             )
         raise HTTPException(status_code=404, detail="Not Found")
 
-    @app.get("/milu-logo.png")
-    def _console_milu_favicon():
-        f = _console_path / "milu-logo.png"
-        if f.is_file():
-            return FileResponse(
-                f,
-                media_type="image/png",
-                headers=_LOGO_CACHE_HEADERS,
-            )
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    @app.get("/milu-favicon.png")
-    def _console_milu_tab_favicon():
-        """Tab icon: scaled raster from milu-logo (sync script); distinct URL vs milu-logo.png for cache bust."""
-        f = _console_path / "milu-favicon.png"
-        if f.is_file():
-            return FileResponse(
-                f,
-                media_type="image/png",
-                headers=_LOGO_CACHE_HEADERS,
-            )
-        raise HTTPException(status_code=404, detail="Not Found")
-
     @app.get("/favicon.ico")
     def _favicon_ico():
         """Serve PNG bytes (not redirect) so clients do not pin an old redirect target."""
-        for name in ("milu-favicon.png", "milu-logo.png"):
+        for name in ("logo.png", "dark-logo.png"):
             f = _console_path / name
             if f.is_file():
                 return FileResponse(
@@ -819,17 +800,6 @@ if os.path.isdir(_CONSOLE_STATIC_DIR):
                     media_type="image/png",
                     headers=_LOGO_CACHE_HEADERS,
                 )
-        raise HTTPException(status_code=404, detail="Not Found")
-
-    @app.get("/milu-symbol.svg")
-    def _console_icon():
-        f = _console_path / "milu-symbol.svg"
-        if f.is_file():
-            return FileResponse(
-                f,
-                media_type="image/svg+xml",
-                headers=_LOGO_CACHE_HEADERS,
-            )
         raise HTTPException(status_code=404, detail="Not Found")
 
     @app.get("/milu-dark.png")

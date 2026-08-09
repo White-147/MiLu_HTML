@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => {
         name: "milu-html-favicon-cache-bust",
         transformIndexHtml(html: string) {
           return html.replace(
-            /href="\/milu-favicon\.png"/,
-            `href="/milu-favicon.png?v=${staticAssetStamp}"`,
+            /href="\/logo\.png"/,
+            `href="/logo.png?v=${staticAssetStamp}"`,
           );
         },
       },

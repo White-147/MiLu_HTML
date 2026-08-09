@@ -17,7 +17,6 @@ dependencies = [
     "questionary>=2.1.1",
     "mss>=9.0.0",
     "reme-ai==0.3.1.8",
-    "transformers>=4.30.0",
     "python-dotenv>=1.0.0",
     "python-socks>=2.5.3",
     "onnxruntime<1.24",
@@ -38,7 +37,6 @@ dependencies = [
     "pyyaml>=6.0",
     "json-repair>=0.30.0",
     "segno>=1.6.6",
-    "modelscope>=1.35.0",
     "huggingface_hub>=0.20.0",
     "pillow>=10.0.0",
     # anyio 4.13.0: _deliver_cancellation busy-loop / getpid storm (CoPaw#2632)
@@ -82,6 +80,11 @@ dev = [
 ]
 local = [
     "huggingface_hub>=0.20.0",
+]
+# 可选：transformers/modelscope SDK（当前代码零 import，仅未来模型推理/下载扩展用）
+models = [
+    "transformers>=4.30.0",
+    "modelscope>=1.35.0",
 ]
 llamacpp = [
     "milu[local]",

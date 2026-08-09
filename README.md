@@ -35,6 +35,8 @@ MiLuAssistantWeb 是基于 CoPaw / QwenPaw 项目体系二次开发的 AI 助手
 - 将原项目的 Python 包名、CLI 入口、运行命名空间、工作目录和环境变量改造为 `milu`。
 - 替换 Web Console 的品牌资源、图标和产品命名。
 - 增加 MiLu 本地模型 / 本地服务相关默认配置。
+- 控制台默认简体中文，并在未配置任何模型时于聊天首页展示模型配置引导字幕。
+- 频道按需加载：通过 `milu_ENABLED_CHANNELS` / `milu_DISABLED_CHANNELS` 环境变量控制启动时加载的频道模块，避免未启用的重 SDK（如飞书 lark_oapi）拖慢启动。
 - 清理运行数据、用户工作区和私有自定义配置，整理为可公开展示的二次开发版本。
 - 为后续 Windows 桌面安装包版本提供 Web 与 Python 后端基础。
 
@@ -70,7 +72,7 @@ npm run dev
 
 ## 与 MiLuAssistantDesktop 的关系
 
-本项目提供 Web 应用与 Python 后端。桌面安装包项目在此基础上使用 Electron / NSIS 打包为 Windows 桌面应用，负责本地启动 Python 后端、加载 Web UI、隔离用户数据目录，并提供更适合交付和售卖的安装体验。
+本项目提供 Web 应用与 Python 后端。桌面安装包项目在此基础上使用 Electron 与 Inno Setup 打包为 Windows 桌面应用，负责本地启动 Python 后端、加载 Web UI、隔离用户数据目录，并提供更适合交付和售卖的安装体验。
 
 ## 开源协议与安全
 

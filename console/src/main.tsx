@@ -11,7 +11,7 @@ function ensureMiluFavicon() {
     basePath.endsWith("/") ? basePath : `${basePath}/`
   }`;
   const href = new URL(
-    `milu-favicon.png?v=${encodeURIComponent(stamp)}`,
+    `logo.png?v=${encodeURIComponent(stamp)}`,
     originBase,
   ).href;
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import os
 import sys
 import threading
 from typing import TYPE_CHECKING
@@ -42,6 +43,27 @@ _BUILTIN_CHANNEL_CACHE: dict[str, type[BaseChannel]] | None = None
 _BUILTIN_CHANNEL_CACHE_LOCK = threading.Lock()
 
 
+def _allowed_builtin_keys() -> frozenset[str]:
+    """Built-in channels that may be imported, filtered by env.
+
+    Mirrors ``config.utils.get_available_channels`` semantics
+    (``milu_ENABLED_CHANNELS`` whitelist takes precedence over
+    ``milu_DISABLED_CHANNELS`` blacklist; an empty result falls back to
+    all keys) so heavy optional SDKs (lark_oapi, twilio, ...) are not
+    imported at startup when their channels are disabled.
+    """
+    keys = frozenset(_BUILTIN_SPECS)
+    raw_enabled = os.environ.get("milu_ENABLED_CHANNELS", "").strip()
+    if raw_enabled:
+        enabled = {ch.strip() for ch in raw_enabled.split(",") if ch.strip()}
+        return keys & enabled or keys
+    raw_disabled = os.environ.get("milu_DISABLED_CHANNELS", "").strip()
+    if raw_disabled:
+        disabled = {ch.strip() for ch in raw_disabled.split(",") if ch.strip()}
+        return keys - disabled or keys
+    return keys
+
+
 def _load_builtin_channels() -> dict[str, type[BaseChannel]]:
     """Load built-in channels safely.
 
@@ -49,6 +71,8 @@ def _load_builtin_channels() -> dict[str, type[BaseChannel]]:
     """
     out: dict[str, type[BaseChannel]] = {}
     for key, (module_name, class_name) in _BUILTIN_SPECS.items():
+        if key not in _allowed_builtin_keys():
+            continue
         try:
             mod = importlib.import_module(module_name, package=__package__)
             cls = getattr(mod, class_name)

@@ -6,7 +6,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Modal, Result, Tooltip } from "antd";
 import { useAppMessage } from "../../hooks/useAppMessage";
-import { ExclamationCircleOutlined, SettingOutlined } from "@ant-design/icons";
+import { ExclamationCircleOutlined, SettingOutlined, CloseOutlined } from "@ant-design/icons";
 import { SparkCopyLine, SparkAttachmentLine } from "@agentscope-ai/icons";
 import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -268,6 +268,35 @@ export default function ChatPage() {
     return match?.[1];
   }, [location.pathname]);
   const [showModelPrompt, setShowModelPrompt] = useState(false);
+  // 首页模型引导：null=检查中 / false=无任何可用模型（显示引导横幅）
+  const [hasModels, setHasModels] = useState<boolean | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    providerApi
+      .listProviders()
+      .then((providers) => {
+        if (cancelled) return;
+        // 可用模型判定：内置 provider 自带默认模型列表（未配 key 不可用），
+        // 必须满足：有模型 且（本地 / 已配置 api_key / 自定义免 key）
+        const anyUsable = (providers as ProviderInfo[]).some((p) => {
+          const count =
+            (p.models?.length ?? 0) + (p.extra_models?.length ?? 0);
+          if (count <= 0) return false;
+          if (p.is_local) return true;
+          if (p.api_key) return true;
+          if (p.is_custom && !p.require_api_key) return true;
+          return false;
+        });
+        setHasModels(anyUsable);
+      })
+      .catch(() => {
+        // 接口异常时不打扰用户，按有模型处理
+        if (!cancelled) setHasModels(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const { selectedAgent } = useAgentStore();
   const [refreshKey, setRefreshKey] = useState(0);
   const runtimeLoadingBridgeRef = useRef<RuntimeLoadingBridgeApi | null>(null);
@@ -681,6 +710,46 @@ export default function ChatPage() {
       }}
     >
       <div className={styles.chatMessagesArea}>
+        {hasModels === false && (
+          <div style={{ margin: "8px 12px 0", flexShrink: 0 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 12px",
+                borderRadius: 8,
+                fontSize: 13,
+                color: isDark ? "rgba(255,255,255,0.85)" : "#5b4a9e",
+                background: isDark
+                  ? "rgba(124,92,252,0.16)"
+                  : "rgba(124,92,252,0.10)",
+                border: `1px solid ${
+                  isDark ? "rgba(167,139,250,0.35)" : "rgba(124,92,252,0.30)"
+                }`,
+              }}
+            >
+              <ExclamationCircleOutlined
+                style={{ color: "#7c5cfc", fontSize: 15 }}
+              />
+              <span>{t("chat.onboardingMessage")}</span>
+              <div style={{ flex: 1 }} />
+              <Button
+                size="small"
+                type="primary"
+                icon={<SettingOutlined />}
+                style={{ background: "#7c5cfc", borderColor: "#7c5cfc" }}
+                onClick={() => navigate("/models")}
+              >
+                {t("chat.onboardingAction")}
+              </Button>
+              <CloseOutlined
+                onClick={() => setHasModels(true)}
+                style={{ cursor: "pointer", opacity: 0.55 }}
+              />
+            </div>
+          </div>
+        )}
         <AgentScopeRuntimeWebUI
           ref={chatRef}
           key={refreshKey}
