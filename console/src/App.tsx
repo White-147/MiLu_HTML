@@ -121,7 +121,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 function getRouterBasename(pathname: string): string | undefined {
-  return /^\/console(?:\/|$)/.test(pathname) ? "/console" : undefined;
+  if (/^\/console(?:\/|$)/.test(pathname)) return "/console";
+  // 子路径部署适配（如 GitHub Pages /jyl-site/preview/...）：按当前路径推导 basename；
+  // 根路径部署（pathname 为 "/"）时退化为无 basename，行为与之前完全一致。
+  const stripped = pathname.replace(/\/+$/, "");
+  return stripped || undefined;
 }
 
 function AppInner() {
