@@ -19,6 +19,7 @@ import { providerApi } from "../../api/modules/provider";
 import type { ProviderInfo, ModelInfo } from "../../api/types";
 import ModelSelector from "./ModelSelector";
 import { useTheme } from "../../contexts/ThemeContext";
+import { assetUrl } from "../../utils/publicAssets";
 import { useAgentStore } from "../../stores/agentStore";
 import { useChatAnywhereInput } from "@agentscope-ai/chat";
 import styles from "./index.module.less";
@@ -611,7 +612,7 @@ export default function ChatPage() {
       welcome: {
         ...i18nConfig.welcome,
         nick: "MiLu",
-        avatar: `${import.meta.env.BASE_URL}milu-local-288.png?v=${__MILU_STATIC_ASSET_STAMP__}`,
+        avatar: `${assetUrl("milu-local-288.png")}?v=${__MILU_STATIC_ASSET_STAMP__}`,
       },
       sender: {
         ...(i18nConfig as any)?.sender,

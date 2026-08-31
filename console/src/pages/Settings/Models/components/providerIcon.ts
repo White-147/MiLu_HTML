@@ -1,3 +1,5 @@
+import { assetUrl } from "../../../../utils/publicAssets";
+
 export const providerIcon = (provider: string) => {
   switch (provider) {
     case "modelscope":
@@ -27,7 +29,7 @@ export const providerIcon = (provider: string) => {
     case "lmstudio":
       return "https://gw.alicdn.com/imgextra/i4/O1CN01Abv67y1jHaXLqikIJ_!!6000000004523-2-tps-200-200.png";
     case "milu-local":
-      return `${import.meta.env.BASE_URL}milu-local-288.png?v=${__MILU_STATIC_ASSET_STAMP__}`;
+      return `${assetUrl("milu-local-288.png")}?v=${__MILU_STATIC_ASSET_STAMP__}`;
     case "zhipu-cn":
     case "zhipu-intl":
     case "zhipu-cn-codingplan":

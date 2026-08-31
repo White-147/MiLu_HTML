@@ -7,6 +7,7 @@ import { Button } from "@agentscope-ai/design";
 import styles from "./index.module.less";
 import { getDocsUrl } from "./constants";
 import { useTheme } from "../contexts/ThemeContext";
+import { assetUrl } from "../utils/publicAssets";
 import api from "../api";
 
 const { Header: AntHeader } = Layout;
@@ -16,9 +17,7 @@ export default function Header() {
   const { isDark } = useTheme();
   const [version, setVersion] = useState("");
 
-  const logoSrc = `${import.meta.env.BASE_URL}${
-    isDark ? "dark-logo.png" : "logo.png"
-  }?v=${__MILU_STATIC_ASSET_STAMP__}`;
+  const logoSrc = `${assetUrl(isDark ? "dark-logo.png" : "logo.png")}?v=${__MILU_STATIC_ASSET_STAMP__}`;
 
   useEffect(() => {
     api

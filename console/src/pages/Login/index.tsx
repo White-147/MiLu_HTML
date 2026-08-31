@@ -7,6 +7,7 @@ import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { authApi } from "../../api/modules/auth";
 import { setAuthToken } from "../../api/config";
 import { useTheme } from "../../contexts/ThemeContext";
+import { assetUrl } from "../../utils/publicAssets";
 
 export default function LoginPage() {
   const { t } = useTranslation();
@@ -96,9 +97,7 @@ export default function LoginPage() {
       >
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <img
-            src={`${import.meta.env.BASE_URL}${
-              isDark ? "dark-logo.png" : "logo.png"
-            }`}
+            src={`${assetUrl(isDark ? "dark-logo.png" : "logo.png")}`}
             alt="MiLu"
             style={{ height: 48, marginBottom: 12 }}
           />

@@ -120,16 +120,29 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function getRouterBasename(pathname: string): string | undefined {
-  if (/^\/console(?:\/|$)/.test(pathname)) return "/console";
-  // 子路径部署适配（如 GitHub Pages /jyl-site/preview/...）：按当前路径推导 basename；
-  // 根路径部署（pathname 为 "/"）时退化为无 basename，行为与之前完全一致。
-  const stripped = pathname.replace(/\/+$/, "");
-  return stripped || undefined;
+/**
+ * Router basename：在模块加载时（SPA 入口，尚未发生任何客户端导航）一次性确定，
+ * 取「入口文档所在目录」作为部署根：
+ *   - 根部署 "/"            → undefined（无 basename）
+ *   - "/console/"          → "/console"
+ *   - GitHub Pages 预览     → "/jyl-site/preview/milu-assistant-web"
+ *   - SPA 深链（fallback 直达 /console/chat 等）→ 目录即应用根，同样正确。
+ * 原实现每次渲染都按 window.location.pathname 重算，会把当前路由吞进 basename，
+ * 导致每次主题切换 URL 多叠加一层路由（/chat → /chat/chat → …），
+ * 并让相对资源路径（./logo.png 等）解析错位、图标 404。
+ */
+function resolveRouterBasename(): string | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+  const entryDir = new URL('.', window.location.href).pathname.replace(/\/+$/, '');
+  return entryDir || undefined;
 }
 
+const ROUTER_BASENAME = resolveRouterBasename();
+
 function AppInner() {
-  const basename = getRouterBasename(window.location.pathname);
+  const basename = ROUTER_BASENAME;
   const { i18n } = useTranslation();
   const { isDark } = useTheme();
   const lang = i18n.resolvedLanguage || i18n.language || "en";
