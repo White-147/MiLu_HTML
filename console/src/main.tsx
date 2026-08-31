@@ -6,13 +6,12 @@ import "./i18n";
 function ensureMiluFavicon() {
   if (typeof window === "undefined") return;
   const stamp = __MILU_STATIC_ASSET_STAMP__;
-  const basePath = import.meta.env.BASE_URL || "/";
-  const originBase = `${window.location.origin}${
-    basePath.endsWith("/") ? basePath : `${basePath}/`
-  }`;
+  // BASE_URL 可能是相对（"./"）或绝对（"/console/"）：以当前文档为基准解析，
+  // 避免 origin + BASE_URL 直接拼接产生非法 base（子路径部署下会抛 Invalid base URL）
+  const originBase = new URL(import.meta.env.BASE_URL || "/", document.baseURI).href;
   const href = new URL(
     `logo.png?v=${encodeURIComponent(stamp)}`,
-    originBase,
+    originBase.endsWith("/") ? originBase : `${originBase}/`,
   ).href;
 
   document
