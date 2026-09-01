@@ -848,6 +848,25 @@ html.dark-mode [class*="chat-anywhere"] [class*="message"] a {
   background: var(--milu-page-bg);
 }
 
+/* ChatAnywhere 组件库内部左栏/布局高度用 100vh（随浏览器地址栏放大），
+   统一改为随容器高度（父级已按 100dvh 适配），避免 iPad/移动端底部裁切；
+   根布局强制填满页面内容区（page-content 固定 flex 高度），输入区贴底不再溢出 */
+[class*="chat-anywhere-layout-left"] {
+  height: 100% !important;
+}
+
+/* chat 组件自带 header 行（New Chat + 模型选择），主区高度需扣除其占位，
+   否则底部输入区被挤出可视区域（iPad/手机竖屏实测 header 占 66px） */
+[class*="chat-anywhere-layout"] {
+  height: calc(100% - 66px) !important;
+  max-height: calc(100% - 66px) !important;
+}
+
+[class*="chat-anywhere-layout-main"],
+[class*="chat-anywhere-layout-right"] {
+  max-height: 100%;
+}
+
 .ant-layout-content {
   overflow: hidden;
   background: var(--milu-page-bg);
@@ -980,6 +999,8 @@ html.dark-mode .ant-menu-submenu-title {
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* flex item 允许收缩：避免内容撑破 mainLayout 高度链（iPad/窄屏底部被裁） */
+  min-height: 0;
   padding-bottom: 8px;
   padding-right: 8px;
 }
@@ -990,6 +1011,8 @@ html.dark-mode .ant-menu-submenu-title {
 
 .page-content {
   flex: 1 1 auto;
+  /* flex column 中允许收缩：缺省 min-height:auto 会按内容高度撑破主容器（iPad/窄屏底部被裁） */
+  min-height: 0;
   overflow: auto;
   background-color: #fff;
   border-radius: 8px;

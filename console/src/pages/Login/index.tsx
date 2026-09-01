@@ -76,6 +76,8 @@ export default function LoginPage() {
     <div
       style={{
         height: "100vh",
+        // @ts-expect-error — 双写属性提供 100vh 回退（JS 侧取后者，dvh 浏览器生效）
+        height: "100dvh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

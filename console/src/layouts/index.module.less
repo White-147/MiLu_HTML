@@ -1,6 +1,8 @@
 // ─── MainLayout ───────────────────────────────────────────────────────────────
 .mainLayout {
   height: 100vh;
+  // 动态视口：iPad Safari / 移动端地址栏下 100vh 会超出可视区域（底部被裁切）
+  height: 100dvh;
 }
 
 .pageContainer {
@@ -32,6 +34,7 @@
   background: var(--milu-page-bg) !important;
   overflow: auto;
   height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
   padding: 0 16px;
   display: flex;
   flex-direction: column;
