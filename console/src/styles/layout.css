@@ -1,6 +1,9 @@
 html,
 body {
   height: 100%;
+  /* 移动/平板浏览器地址栏：动态视口高度优先（不支持 dvh 回退 height:100%），
+     避免 iPad Safari 下 100vh 超出可视区域导致底部输入区被裁切 */
+  height: 100dvh;
   overflow: hidden;
   margin: 0;
   padding: 0;
@@ -839,6 +842,8 @@ html.dark-mode [class*="chat-anywhere"] [class*="message"] a {
 .ant-layout {
   min-height: 100vh;
   max-height: 100vh;
+  min-height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
   background: var(--milu-page-bg);
 }
