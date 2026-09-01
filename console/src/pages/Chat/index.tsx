@@ -708,11 +708,22 @@ export default function ChatPage() {
         width: "100%",
         display: "flex",
         flexDirection: "column",
+        position: "relative",
       }}
     >
       <div className={styles.chatMessagesArea}>
         {hasModels === false && (
-          <div style={{ margin: "8px 12px 0", flexShrink: 0 }}>
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 5,
+              margin: "8px 12px 0",
+              flexShrink: 0,
+            }}
+          >
             <div
               style={{
                 display: "flex",
