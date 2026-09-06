@@ -1,5 +1,5 @@
 import React from "react";
-import { useChatAnywhereSessionsState } from "@agentscope-ai/chat";
+import { useChatAnywhereSessionsState } from "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI";
 import styles from "./index.module.less";
 
 const ChatHeaderTitle: React.FC = () => {

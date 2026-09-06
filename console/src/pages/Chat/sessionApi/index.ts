@@ -2,7 +2,7 @@ import {
   IAgentScopeRuntimeWebUISession,
   IAgentScopeRuntimeWebUISessionAPI,
   IAgentScopeRuntimeWebUIMessage,
-} from "@agentscope-ai/chat";
+} from "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI";
 import api, {
   type ChatSpec,
   type ChatHistory,

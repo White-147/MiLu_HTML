@@ -1,8 +1,8 @@
-import {
-  AgentScopeRuntimeWebUI,
-  IAgentScopeRuntimeWebUIOptions,
+import AgentScopeRuntimeWebUI, {
+  type IAgentScopeRuntimeWebUIOptions,
   type IAgentScopeRuntimeWebUIRef,
-} from "@agentscope-ai/chat";
+  useChatAnywhereInput,
+} from "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Modal, Result, Tooltip } from "antd";
 import { useAppMessage } from "../../hooks/useAppMessage";
@@ -21,7 +21,6 @@ import ModelSelector from "./ModelSelector";
 import { useTheme } from "../../contexts/ThemeContext";
 import { assetUrl } from "../../utils/publicAssets";
 import { useAgentStore } from "../../stores/agentStore";
-import { useChatAnywhereInput } from "@agentscope-ai/chat";
 import styles from "./index.module.less";
 import { IconButton } from "@agentscope-ai/design";
 import ChatActionGroup from "./components/ChatActionGroup";

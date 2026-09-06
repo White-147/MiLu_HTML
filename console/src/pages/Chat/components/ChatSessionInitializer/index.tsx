@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { useChatAnywhereSessionsState } from "@agentscope-ai/chat";
+import { useChatAnywhereSessionsState } from "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI";
 
 /**
  * URL chatId → context currentSessionId (one direction of bidirectional sync).

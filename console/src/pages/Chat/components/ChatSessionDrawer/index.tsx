@@ -6,7 +6,7 @@ import {
   useChatAnywhereSessionsState,
   useChatAnywhereSessions,
   type IAgentScopeRuntimeWebUISession,
-} from "@agentscope-ai/chat";
+} from "@agentscope-ai/chat/lib/AgentScopeRuntimeWebUI";
 import { useTranslation } from "react-i18next";
 import type { ChatStatus } from "../../../../api/types/chat";
 import { chatApi } from "../../../../api/modules/chat";
