@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./i18n";
+// 本地化字体（@fontsource，替代 Google Fonts 在线请求）
+import "./styles/fonts-local.css";
 
 /** Tab favicon: absolute URL + build stamp (survives cached HTML / odd webviews). */
 function ensureMiluFavicon() {

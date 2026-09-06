@@ -1,0 +1,11 @@
+/* 本地化字体：替代 Google Fonts 在线请求（境外网络下 fonts.googleapis.com 超时拖慢首屏）
+   来源：@fontsource/inter、@fontsource/lato、@fontsource/newsreader（woff2 随包分发，离线可用）
+   使用 latin 专属子集：本项目为英文 UI 字体（中文走系统字体），只加载 latin 子集更精简 */
+@import "@fontsource/inter/latin-400.css";
+@import "@fontsource/inter/latin-500.css";
+@import "@fontsource/inter/latin-600.css";
+@import "@fontsource/lato/latin-400.css";
+@import "@fontsource/lato/latin-700.css";
+@import "@fontsource/newsreader/latin-400.css";
+@import "@fontsource/newsreader/latin-500.css";
+@import "@fontsource/newsreader/latin-400-italic.css";
